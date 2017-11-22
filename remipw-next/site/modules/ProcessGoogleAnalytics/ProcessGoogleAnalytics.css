@@ -1,0 +1,98 @@
+/* jqplot Styles*/
+
+.ga_chart_lines{
+	width: 100%; 
+	height: 200px;
+}
+
+.jqplot-highlighter-tooltip{
+	font-size: 11px;
+	border: 1px solid #cccccc;
+	padding: 6px;
+	background-color: #ffffff;
+	color: #000000 !important;
+	text-align: center;
+	box-shadow: 0px 0px 6px rgba(0,0,0,0.4);
+}
+
+.jqplot-highlighter-tooltip span.ga_highlight{
+	color: #C50F68;
+	font-weight: bold;
+	font-size: 18px;
+}
+
+/*General Styles*/
+
+#audience_visits_stats,
+#content_stats {
+	margin-top: 15px;
+}
+
+.load{
+	background-image: url(ajax-loader.gif);
+	background-position: center center;
+	background-repeat: no-repeat;
+	min-height: 50px;
+}
+
+span.compare {
+	font-size: 11px;
+	display: block;
+	float: right;
+	font-weight: bold;
+}
+
+.plus {
+	color: green;
+}
+
+.minus {
+	color: red;
+}
+
+.ga_header_links {
+	margin-bottom: 10px;
+}
+
+a.ga_display_more_rows{
+	font-size: 11px;
+}
+
+#traffic_sources_keywords{
+	margin-top: 30px;
+}
+
+/*Table styles*/
+
+.ga_tables_wrapper table { display: none; }
+
+.ga_tables_wrapper table:first-child { display: table; }
+
+table.AdminDataTable td div.percent{
+	height: 15px;
+	display: block;
+	float: left;
+	background-color: #DB1174;
+	margin: 3px 5px 0px 0px;
+}
+
+table.ga_table { width: 100%; }
+
+table.ga_table_highlight td{
+	border: 1px solid #c1c1c1;
+	padding: 10px;
+	font-weight: bold;
+	font-size: 18px;
+	background-color: #ffffff;
+	background-color: #E4EBEE;
+	background: -webkit-linear-gradient(#E4EBEE 0%, #ffffff 100%);
+	background: -moz-linear-gradient(#E4EBEE 0%, #ffffff 100%);
+	background: -o-linear-gradient(#E4EBEE 0%, #ffffff 100%);
+	background: -linear-gradient(#E4EBEE 0%, #ffffff 100%);
+	color: #000000;
+}
+
+td div.desc{
+	font-weight: normal;
+	font-size: 12px;
+}

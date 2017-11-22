@@ -1,0 +1,442 @@
+
+<table id='AdminDataTable1' class='AdminDataTable AdminDataList country AdminDataTableResponsive'>
+	<thead>
+	<tr>
+		<th>country</th>
+		<th>Visits</th>
+		<th>% Visits</th>
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td>France</td>
+			<td>19</td>
+			<td><div class='percent' style='width: 8px;'></div>11.66 %</td>
+		</tr>
+		<tr>
+			<td>Nigeria</td>
+			<td>19</td>
+			<td><div class='percent' style='width: 8px;'></div>11.66 %</td>
+		</tr>
+		<tr>
+			<td>Germany</td>
+			<td>16</td>
+			<td><div class='percent' style='width: 6px;'></div>9.82 %</td>
+		</tr>
+		<tr>
+			<td>United States</td>
+			<td>13</td>
+			<td><div class='percent' style='width: 5px;'></div>7.98 %</td>
+		</tr>
+		<tr>
+			<td>India</td>
+			<td>12</td>
+			<td><div class='percent' style='width: 5px;'></div>7.36 %</td>
+		</tr>
+		<tr>
+			<td>United Kingdom</td>
+			<td>12</td>
+			<td><div class='percent' style='width: 5px;'></div>7.36 %</td>
+		</tr>
+		<tr>
+			<td>Philippines</td>
+			<td>9</td>
+			<td><div class='percent' style='width: 3px;'></div>5.52 %</td>
+		</tr>
+		<tr>
+			<td>Lithuania</td>
+			<td>8</td>
+			<td><div class='percent' style='width: 3px;'></div>4.91 %</td>
+		</tr>
+		<tr>
+			<td>Spain</td>
+			<td>5</td>
+			<td><div class='percent' style='width: 2px;'></div>3.07 %</td>
+		</tr>
+		<tr>
+			<td>Australia</td>
+			<td>4</td>
+			<td><div class='percent' style='width: 1px;'></div>2.45 %</td>
+		</tr>
+		<tr>
+			<td><a class='ga_display_more_rows' href='#'>show more</a></td>
+			<td class='blank'>&nbsp;</td>
+			<td class='blank'>&nbsp;</td>
+		</tr>
+		<tr>
+			<td>Denmark</td>
+			<td>4</td>
+			<td><div class='percent' style='width: 1px;'></div>2.45 %</td>
+		</tr>
+		<tr>
+			<td>Italy</td>
+			<td>4</td>
+			<td><div class='percent' style='width: 1px;'></div>2.45 %</td>
+		</tr>
+		<tr>
+			<td>Belgium</td>
+			<td>3</td>
+			<td><div class='percent' style='width: 1px;'></div>1.84 %</td>
+		</tr>
+		<tr>
+			<td>Malaysia</td>
+			<td>3</td>
+			<td><div class='percent' style='width: 1px;'></div>1.84 %</td>
+		</tr>
+		<tr>
+			<td>Poland</td>
+			<td>3</td>
+			<td><div class='percent' style='width: 1px;'></div>1.84 %</td>
+		</tr>
+		<tr>
+			<td>Vietnam</td>
+			<td>3</td>
+			<td><div class='percent' style='width: 1px;'></div>1.84 %</td>
+		</tr>
+		<tr>
+			<td>Canada</td>
+			<td>2</td>
+			<td><div class='percent' style='width: 0px;'></div>1.23 %</td>
+		</tr>
+		<tr>
+			<td>Egypt</td>
+			<td>2</td>
+			<td><div class='percent' style='width: 0px;'></div>1.23 %</td>
+		</tr>
+		<tr>
+			<td>Indonesia</td>
+			<td>2</td>
+			<td><div class='percent' style='width: 0px;'></div>1.23 %</td>
+		</tr>
+		<tr>
+			<td>Mexico</td>
+			<td>2</td>
+			<td><div class='percent' style='width: 0px;'></div>1.23 %</td>
+		</tr>
+		<tr>
+			<td>Netherlands</td>
+			<td>2</td>
+			<td><div class='percent' style='width: 0px;'></div>1.23 %</td>
+		</tr>
+		<tr>
+			<td>Switzerland</td>
+			<td>2</td>
+			<td><div class='percent' style='width: 0px;'></div>1.23 %</td>
+		</tr>
+		<tr>
+			<td>Armenia</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.61 %</td>
+		</tr>
+		<tr>
+			<td>Belarus</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.61 %</td>
+		</tr>
+		<tr>
+			<td>Bolivia</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.61 %</td>
+		</tr>
+		<tr>
+			<td>Bulgaria</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.61 %</td>
+		</tr>
+		<tr>
+			<td>Ghana</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.61 %</td>
+		</tr>
+		<tr>
+			<td>Guatemala</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.61 %</td>
+		</tr>
+		<tr>
+			<td>Japan</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.61 %</td>
+		</tr>
+		<tr>
+			<td>Kosovo</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.61 %</td>
+		</tr>
+	</tbody>
+</table>
+<script>if(typeof AdminDataTable != 'undefined') AdminDataTable.initTable($('#AdminDataTable1'));</script>
+<table id='AdminDataTable2' class='AdminDataTable AdminDataList city AdminDataTableResponsive'>
+	<thead>
+	<tr>
+		<th>city</th>
+		<th>Visits</th>
+		<th>% Visits</th>
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td>Lagos</td>
+			<td>17</td>
+			<td><div class='percent' style='width: 7px;'></div>10.43 %</td>
+		</tr>
+		<tr>
+			<td>Strasbourg</td>
+			<td>16</td>
+			<td><div class='percent' style='width: 6px;'></div>9.82 %</td>
+		</tr>
+		<tr>
+			<td>Quezon City</td>
+			<td>8</td>
+			<td><div class='percent' style='width: 3px;'></div>4.91 %</td>
+		</tr>
+		<tr>
+			<td>(not set)</td>
+			<td>7</td>
+			<td><div class='percent' style='width: 3px;'></div>4.29 %</td>
+		</tr>
+		<tr>
+			<td>Dusseldorf</td>
+			<td>5</td>
+			<td><div class='percent' style='width: 2px;'></div>3.07 %</td>
+		</tr>
+		<tr>
+			<td>Dallas</td>
+			<td>4</td>
+			<td><div class='percent' style='width: 1px;'></div>2.45 %</td>
+		</tr>
+		<tr>
+			<td>Perth</td>
+			<td>4</td>
+			<td><div class='percent' style='width: 1px;'></div>2.45 %</td>
+		</tr>
+		<tr>
+			<td>Vejle</td>
+			<td>4</td>
+			<td><div class='percent' style='width: 1px;'></div>2.45 %</td>
+		</tr>
+		<tr>
+			<td>Huckelhoven</td>
+			<td>3</td>
+			<td><div class='percent' style='width: 1px;'></div>1.84 %</td>
+		</tr>
+		<tr>
+			<td>Hyderabad</td>
+			<td>3</td>
+			<td><div class='percent' style='width: 1px;'></div>1.84 %</td>
+		</tr>
+		<tr>
+			<td><a class='ga_display_more_rows' href='#'>show more</a></td>
+			<td class='blank'>&nbsp;</td>
+			<td class='blank'>&nbsp;</td>
+		</tr>
+		<tr>
+			<td>Klaipeda</td>
+			<td>3</td>
+			<td><div class='percent' style='width: 1px;'></div>1.84 %</td>
+		</tr>
+		<tr>
+			<td>London</td>
+			<td>3</td>
+			<td><div class='percent' style='width: 1px;'></div>1.84 %</td>
+		</tr>
+		<tr>
+			<td>Madrid</td>
+			<td>3</td>
+			<td><div class='percent' style='width: 1px;'></div>1.84 %</td>
+		</tr>
+		<tr>
+			<td>Abuja</td>
+			<td>2</td>
+			<td><div class='percent' style='width: 0px;'></div>1.23 %</td>
+		</tr>
+		<tr>
+			<td>Chennai</td>
+			<td>2</td>
+			<td><div class='percent' style='width: 0px;'></div>1.23 %</td>
+		</tr>
+		<tr>
+			<td>Edinburgh</td>
+			<td>2</td>
+			<td><div class='percent' style='width: 0px;'></div>1.23 %</td>
+		</tr>
+		<tr>
+			<td>Frankfurt</td>
+			<td>2</td>
+			<td><div class='percent' style='width: 0px;'></div>1.23 %</td>
+		</tr>
+		<tr>
+			<td>Mumbai</td>
+			<td>2</td>
+			<td><div class='percent' style='width: 0px;'></div>1.23 %</td>
+		</tr>
+		<tr>
+			<td>New Delhi</td>
+			<td>2</td>
+			<td><div class='percent' style='width: 0px;'></div>1.23 %</td>
+		</tr>
+		<tr>
+			<td>Siauliai</td>
+			<td>2</td>
+			<td><div class='percent' style='width: 0px;'></div>1.23 %</td>
+		</tr>
+		<tr>
+			<td>Aberdeen</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.61 %</td>
+		</tr>
+		<tr>
+			<td>Abu Dhabi</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.61 %</td>
+		</tr>
+		<tr>
+			<td>Accra</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.61 %</td>
+		</tr>
+		<tr>
+			<td>Acigne</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.61 %</td>
+		</tr>
+		<tr>
+			<td>Alexandria</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.61 %</td>
+		</tr>
+		<tr>
+			<td>Alkmaar</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.61 %</td>
+		</tr>
+		<tr>
+			<td>Bandar Lampung</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.61 %</td>
+		</tr>
+		<tr>
+			<td>Barcelona</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.61 %</td>
+		</tr>
+		<tr>
+			<td>Bengaluru</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.61 %</td>
+		</tr>
+		<tr>
+			<td>Burbank</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.61 %</td>
+		</tr>
+	</tbody>
+</table>
+<script>if(typeof AdminDataTable != 'undefined') AdminDataTable.initTable($('#AdminDataTable2'));</script>
+<table id='AdminDataTable3' class='AdminDataTable AdminDataList language AdminDataTableResponsive'>
+	<thead>
+	<tr>
+		<th>language</th>
+		<th>Visits</th>
+		<th>% Visits</th>
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td>en-us</td>
+			<td>86</td>
+			<td><div class='percent' style='width: 36px;'></div>52.76 %</td>
+		</tr>
+		<tr>
+			<td>en-gb</td>
+			<td>23</td>
+			<td><div class='percent' style='width: 9px;'></div>14.11 %</td>
+		</tr>
+		<tr>
+			<td>fr</td>
+			<td>18</td>
+			<td><div class='percent' style='width: 7px;'></div>11.04 %</td>
+		</tr>
+		<tr>
+			<td>de</td>
+			<td>5</td>
+			<td><div class='percent' style='width: 2px;'></div>3.07 %</td>
+		</tr>
+		<tr>
+			<td>de-de</td>
+			<td>5</td>
+			<td><div class='percent' style='width: 2px;'></div>3.07 %</td>
+		</tr>
+		<tr>
+			<td>en</td>
+			<td>4</td>
+			<td><div class='percent' style='width: 1px;'></div>2.45 %</td>
+		</tr>
+		<tr>
+			<td>it</td>
+			<td>4</td>
+			<td><div class='percent' style='width: 1px;'></div>2.45 %</td>
+		</tr>
+		<tr>
+			<td>es</td>
+			<td>3</td>
+			<td><div class='percent' style='width: 1px;'></div>1.84 %</td>
+		</tr>
+		<tr>
+			<td>pl</td>
+			<td>3</td>
+			<td><div class='percent' style='width: 1px;'></div>1.84 %</td>
+		</tr>
+		<tr>
+			<td>fr-fr</td>
+			<td>2</td>
+			<td><div class='percent' style='width: 0px;'></div>1.23 %</td>
+		</tr>
+		<tr>
+			<td><a class='ga_display_more_rows' href='#'>show more</a></td>
+			<td class='blank'>&nbsp;</td>
+			<td class='blank'>&nbsp;</td>
+		</tr>
+		<tr>
+			<td>ru</td>
+			<td>2</td>
+			<td><div class='percent' style='width: 0px;'></div>1.23 %</td>
+		</tr>
+		<tr>
+			<td>vi</td>
+			<td>2</td>
+			<td><div class='percent' style='width: 0px;'></div>1.23 %</td>
+		</tr>
+		<tr>
+			<td>bg</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.61 %</td>
+		</tr>
+		<tr>
+			<td>en_gb</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.61 %</td>
+		</tr>
+		<tr>
+			<td>id</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.61 %</td>
+		</tr>
+		<tr>
+			<td>ja</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.61 %</td>
+		</tr>
+		<tr>
+			<td>lt</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.61 %</td>
+		</tr>
+		<tr>
+			<td>zh-cn</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.61 %</td>
+		</tr>
+	</tbody>
+</table>
+<script>if(typeof AdminDataTable != 'undefined') AdminDataTable.initTable($('#AdminDataTable3'));</script>

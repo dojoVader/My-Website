@@ -1,0 +1,95 @@
+
+<table id='AdminDataTable1' class='AdminDataTable AdminDataList os AdminDataTableResponsive'>
+	<thead>
+	<tr>
+		<th>os</th>
+		<th>Visits</th>
+		<th>% Visits</th>
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td>Android</td>
+			<td>11</td>
+			<td><div class='percent' style='width: 48px;'></div>68.75 %</td>
+		</tr>
+		<tr>
+			<td>iOS</td>
+			<td>4</td>
+			<td><div class='percent' style='width: 17px;'></div>25.00 %</td>
+		</tr>
+		<tr>
+			<td>BlackBerry</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 4px;'></div>6.25 %</td>
+		</tr>
+	</tbody>
+</table>
+<script>if(typeof AdminDataTable != 'undefined') AdminDataTable.initTable($('#AdminDataTable1'));</script>
+<table id='AdminDataTable2' class='AdminDataTable AdminDataList resolution AdminDataTableResponsive'>
+	<thead>
+	<tr>
+		<th>resolution</th>
+		<th>Visits</th>
+		<th>% Visits</th>
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td>360x640</td>
+			<td>5</td>
+			<td><div class='percent' style='width: 21px;'></div>31.25 %</td>
+		</tr>
+		<tr>
+			<td>320x568</td>
+			<td>2</td>
+			<td><div class='percent' style='width: 8px;'></div>12.50 %</td>
+		</tr>
+		<tr>
+			<td>400x568</td>
+			<td>2</td>
+			<td><div class='percent' style='width: 8px;'></div>12.50 %</td>
+		</tr>
+		<tr>
+			<td>300x425</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 4px;'></div>6.25 %</td>
+		</tr>
+		<tr>
+			<td>375x667</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 4px;'></div>6.25 %</td>
+		</tr>
+		<tr>
+			<td>414x736</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 4px;'></div>6.25 %</td>
+		</tr>
+		<tr>
+			<td>480x360</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 4px;'></div>6.25 %</td>
+		</tr>
+		<tr>
+			<td>480x682</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 4px;'></div>6.25 %</td>
+		</tr>
+		<tr>
+			<td>601x962</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 4px;'></div>6.25 %</td>
+		</tr>
+		<tr>
+			<td>720x1280</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 4px;'></div>6.25 %</td>
+		</tr>
+		<tr>
+			<td><a class='ga_display_more_rows' href='#'>show more</a></td>
+			<td class='blank'>&nbsp;</td>
+			<td class='blank'>&nbsp;</td>
+		</tr>
+	</tbody>
+</table>
+<script>if(typeof AdminDataTable != 'undefined') AdminDataTable.initTable($('#AdminDataTable2'));</script>

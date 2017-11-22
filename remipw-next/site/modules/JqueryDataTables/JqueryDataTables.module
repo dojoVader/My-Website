@@ -1,0 +1,30 @@
+<?php
+
+/**
+ * JS module for jQuery DataTables in PocessWire
+ * http://datatables.net
+ */
+
+class JqueryDataTables extends ModuleJS {
+
+    public static function getModuleInfo() {
+        return array(
+                'title' => 'jQuery DataTables Plugin',
+                'version' => 194,
+                'summary' => 'Provides jQuery DataTables for use in ProcessWire.',
+                'href' => 'http://datatables.net',
+                );
+        }
+
+    /**
+     * Per the Module interface, Initialize the Process, loading any related CSS or JS files
+     *
+     */
+    public function init() {
+        $name = $this->classname();
+        $info = $this->getModuleInfo();
+        $version = (int) $info['version'];
+        $this->config->styles->add($this->config->urls->$name . "DataTables/media/css/jquery.dataTables.css?v=$version");
+        $this->config->scripts->add($this->config->urls->$name . "DataTables/media/js/jquery.dataTables.min.js?v=$version");
+    }
+}

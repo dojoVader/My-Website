@@ -1,0 +1,27 @@
+2015-01-31 16:15:06	Update #9: Initializing update
+2015-01-31 16:15:06	Update #9: Added: Pages > Recent
+2015-01-31 16:15:06	Update #9: Completed!
+2015-01-31 16:23:15	Update #10: Initializing update
+2015-01-31 16:23:15	Update #10: Installed ProcessLogger and added: Setup > Logs
+2015-01-31 16:23:15	Update #10: Installed InputfieldIcon
+2015-01-31 16:23:15	Update #10: Completed!
+2015-07-26 18:47:23	Detected core version change  => 2.6.10
+2015-11-20 05:56:30	Update #11: Initializing update
+2015-11-20 05:56:30	Update #11: Completed!
+2015-11-20 05:56:31	Update #12: Initializing update
+2015-11-20 05:56:31	Update #12: Added 'published' column to pages table
+2015-11-20 05:56:31	Update #12: Populated values to 'published' for 162 pages
+2015-11-20 05:56:31	Update #12: Completed!
+2015-11-20 05:56:31	Update #13: Initializing update
+2015-11-20 05:56:31	Update #13: Completed!
+2015-11-28 08:59:01	Update #14: Initializing update
+2015-11-28 08:59:01	Detected core version change 2.7.0 => 2.7.2
+2015-11-28 08:59:01	Update #14: Completed!
+2016-05-07 07:37:55	Detected core version change 2.7.2 => 3.0.17
+2016-05-14 06:02:19	Detected core version change 3.0.17 => 3.0.18
+2017-03-09 14:30:34	Update #15: Initializing update
+2017-03-09 14:30:35	Update #15: Completed!
+2017-03-09 14:30:35	Update #16: Initializing update
+2017-03-09 14:30:35	Update #16: Completed!
+2017-04-26 11:38:21	Detected core version change 3.0.54 => 3.0.61
+2017-10-09 10:15:55	Detected core version change 3.0.61 => 3.0.78

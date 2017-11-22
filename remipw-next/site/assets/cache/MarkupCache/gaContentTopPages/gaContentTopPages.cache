@@ -1,0 +1,118 @@
+
+<table id='AdminDataTable1' class='AdminDataTable AdminDataList page AdminDataTableResponsive'>
+	<thead>
+	<tr>
+		<th>page</th>
+		<th>Pageviews</th>
+		<th>% Pageviews</th>
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td>/articles/posts/creating-impresspages-themes/</td>
+			<td>49</td>
+			<td><div class='percent' style='width: 19px;'></div>27.68 %</td>
+		</tr>
+		<tr>
+			<td>/articles/posts/wordpress-to-processwire-a-guide-for-developers/</td>
+			<td>27</td>
+			<td><div class='percent' style='width: 10px;'></div>15.25 %</td>
+		</tr>
+		<tr>
+			<td>/portfolio/</td>
+			<td>25</td>
+			<td><div class='percent' style='width: 9px;'></div>14.12 %</td>
+		</tr>
+		<tr>
+			<td>/articles/posts/setting-up-a-zend-framework-from-scratch/</td>
+			<td>13</td>
+			<td><div class='percent' style='width: 5px;'></div>7.34 %</td>
+		</tr>
+		<tr>
+			<td>/articles/posts/koken-a-cms-for-photographers/</td>
+			<td>10</td>
+			<td><div class='percent' style='width: 3px;'></div>5.65 %</td>
+		</tr>
+		<tr>
+			<td>/articles/posts/understanding-zf2-process/</td>
+			<td>10</td>
+			<td><div class='percent' style='width: 3px;'></div>5.65 %</td>
+		</tr>
+		<tr>
+			<td>/articles/posts/using-behaviors-in-yii/</td>
+			<td>9</td>
+			<td><div class='percent' style='width: 3px;'></div>5.08 %</td>
+		</tr>
+		<tr>
+			<td>/about/</td>
+			<td>7</td>
+			<td><div class='percent' style='width: 2px;'></div>3.95 %</td>
+		</tr>
+		<tr>
+			<td>/wp-content/uploads/2013/09/zf2-flowchart.jpg</td>
+			<td>6</td>
+			<td><div class='percent' style='width: 2px;'></div>3.39 %</td>
+		</tr>
+		<tr>
+			<td>/notes/</td>
+			<td>4</td>
+			<td><div class='percent' style='width: 1px;'></div>2.26 %</td>
+		</tr>
+		<tr>
+			<td><a class='ga_display_more_rows' href='#'>show more</a></td>
+			<td class='blank'>&nbsp;</td>
+			<td class='blank'>&nbsp;</td>
+		</tr>
+		<tr>
+			<td>/wire/modules/Inputfield/InputfieldCKEditor/ckeditor-4.5.5/plugins/widget/plugin.js?t=2015030801.156</td>
+			<td>4</td>
+			<td><div class='percent' style='width: 1px;'></div>2.26 %</td>
+		</tr>
+		<tr>
+			<td>/articles/posts/experience-with-jquery-mobile-and-dojo/</td>
+			<td>3</td>
+			<td><div class='percent' style='width: 1px;'></div>1.69 %</td>
+		</tr>
+		<tr>
+			<td>/articles/posts/the-challenge-more-post-on-solutions-for-business-rather-programming-articles/</td>
+			<td>3</td>
+			<td><div class='percent' style='width: 1px;'></div>1.69 %</td>
+		</tr>
+		<tr>
+			<td>/articles/posts/blackberry-webworks-dojo-toolkit-dojox-mobilemy-thoughts/</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.56 %</td>
+		</tr>
+		<tr>
+			<td>/articles/posts/understanding-zf2-process/zendframework2.de</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.56 %</td>
+		</tr>
+		<tr>
+			<td>/articles/posts/whats-been-going-on/</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.56 %</td>
+		</tr>
+		<tr>
+			<td>/portfolio/migratorwordpress/</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.56 %</td>
+		</tr>
+		<tr>
+			<td>/portfolio/sarahsnest/</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.56 %</td>
+		</tr>
+		<tr>
+			<td>/portfolio/styljunki/</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.56 %</td>
+		</tr>
+		<tr>
+			<td>/portfolio/techno/</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.56 %</td>
+		</tr>
+	</tbody>
+</table>
+<script>if(typeof AdminDataTable != 'undefined') AdminDataTable.initTable($('#AdminDataTable1'));</script>

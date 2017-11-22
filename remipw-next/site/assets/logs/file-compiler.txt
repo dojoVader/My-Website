@@ -1,0 +1,83 @@
+2016-06-25 17:37:35	guest	http://www.okeowoaderemi.com/articles/posts/blackberry-webworks-dojo-toolkit-dojox-mobilemy-thoughts/	Copy new version of source file to target file: /site/templates/admin.php => /site/assets/cache/FileCompiler/site/templates/admin.php
+2016-06-25 17:37:35	guest	http://www.okeowoaderemi.com/articles/posts/blackberry-webworks-dojo-toolkit-dojox-mobilemy-thoughts/	Remove target file: /site/assets/cache/FileCompiler/site/templates/github-projects.php
+2016-06-25 17:37:35	guest	http://www.okeowoaderemi.com/articles/posts/blackberry-webworks-dojo-toolkit-dojox-mobilemy-thoughts/	Copy new version of source file to target file: /site/templates/blog-archives.php => /site/assets/cache/FileCompiler/site/templates/blog-archives.php
+2016-06-25 17:37:35	guest	http://www.okeowoaderemi.com/articles/posts/blackberry-webworks-dojo-toolkit-dojox-mobilemy-thoughts/	Copy new version of source file to target file: /site/templates/blog-categories.php => /site/assets/cache/FileCompiler/site/templates/blog-categories.php
+2016-06-25 17:37:35	guest	http://www.okeowoaderemi.com/articles/posts/blackberry-webworks-dojo-toolkit-dojox-mobilemy-thoughts/	Copy new version of source file to target file: /site/templates/blog-main.inc => /site/assets/cache/FileCompiler/site/templates/blog-main.inc
+2016-06-25 17:37:35	guest	http://www.okeowoaderemi.com/articles/posts/blackberry-webworks-dojo-toolkit-dojox-mobilemy-thoughts/	Copy new version of source file to target file: /site/templates/blog-authors.php => /site/assets/cache/FileCompiler/site/templates/blog-authors.php
+2016-06-25 17:37:35	guest	http://www.okeowoaderemi.com/articles/posts/blackberry-webworks-dojo-toolkit-dojox-mobilemy-thoughts/	Copy new version of source file to target file: /site/templates/blog-category.php => /site/assets/cache/FileCompiler/site/templates/blog-category.php
+2016-06-25 17:37:35	guest	http://www.okeowoaderemi.com/articles/posts/blackberry-webworks-dojo-toolkit-dojox-mobilemy-thoughts/	Remove target file: /site/assets/cache/FileCompiler/site/templates/_header.php
+2016-06-25 17:37:35	guest	http://www.okeowoaderemi.com/articles/posts/blackberry-webworks-dojo-toolkit-dojox-mobilemy-thoughts/	Remove target file: /site/assets/cache/FileCompiler/site/templates/_main.php
+2016-06-25 17:37:35	guest	http://www.okeowoaderemi.com/articles/posts/blackberry-webworks-dojo-toolkit-dojox-mobilemy-thoughts/	Copy new version of source file to target file: /site/templates/blog-tags.php => /site/assets/cache/FileCompiler/site/templates/blog-tags.php
+2016-06-25 17:37:35	guest	http://www.okeowoaderemi.com/articles/posts/blackberry-webworks-dojo-toolkit-dojox-mobilemy-thoughts/	Copy new version of source file to target file: /site/templates/blog-comments.php => /site/assets/cache/FileCompiler/site/templates/blog-comments.php
+2016-06-25 17:37:35	guest	http://www.okeowoaderemi.com/articles/posts/blackberry-webworks-dojo-toolkit-dojox-mobilemy-thoughts/	Copy new version of source file to target file: /site/templates/sitemap.php => /site/assets/cache/FileCompiler/site/templates/sitemap.php
+2016-06-25 17:37:35	guest	http://www.okeowoaderemi.com/articles/posts/blackberry-webworks-dojo-toolkit-dojox-mobilemy-thoughts/	Remove target file: /site/assets/cache/FileCompiler/site/templates/_func.php
+2016-06-25 17:37:35	guest	http://www.okeowoaderemi.com/articles/posts/blackberry-webworks-dojo-toolkit-dojox-mobilemy-thoughts/	Copy new version of source file to target file: /site/templates/blog.php => /site/assets/cache/FileCompiler/site/templates/blog.php
+2017-01-15 12:52:54	guest	http://www.okeowoaderemi.com/	Copy new version of source file to target file: /site/templates/blog-post.php => /site/assets/cache/FileCompiler/site/templates/blog-post.php
+2017-01-15 12:52:54	guest	http://www.okeowoaderemi.com/	Copy new version of source file to target file: /site/templates/admin.php => /site/assets/cache/FileCompiler/site/templates/admin.php
+2017-01-15 12:52:54	guest	http://www.okeowoaderemi.com/	Copy new version of source file to target file: /site/templates/contact.php => /site/assets/cache/FileCompiler/site/templates/contact.php
+2017-01-15 12:52:54	guest	http://www.okeowoaderemi.com/	Copy new version of source file to target file: /site/templates/blog-archives.php => /site/assets/cache/FileCompiler/site/templates/blog-archives.php
+2017-01-15 12:52:54	guest	http://www.okeowoaderemi.com/	Copy new version of source file to target file: /site/templates/blog-categories.php => /site/assets/cache/FileCompiler/site/templates/blog-categories.php
+2017-01-15 12:52:54	guest	http://www.okeowoaderemi.com/	Copy new version of source file to target file: /site/templates/blog-main.inc => /site/assets/cache/FileCompiler/site/templates/blog-main.inc
+2017-01-15 12:52:54	guest	http://www.okeowoaderemi.com/	Copy new version of source file to target file: /site/templates/blog-authors.php => /site/assets/cache/FileCompiler/site/templates/blog-authors.php
+2017-01-15 12:52:54	guest	http://www.okeowoaderemi.com/	Copy new version of source file to target file: /site/templates/blog-category.php => /site/assets/cache/FileCompiler/site/templates/blog-category.php
+2017-01-15 12:52:54	guest	http://www.okeowoaderemi.com/	Copy new version of source file to target file: /site/templates/blog-tags.php => /site/assets/cache/FileCompiler/site/templates/blog-tags.php
+2017-01-15 12:52:54	guest	http://www.okeowoaderemi.com/	Copy new version of source file to target file: /site/templates/basic-page.php => /site/assets/cache/FileCompiler/site/templates/basic-page.php
+2017-01-15 12:52:54	guest	http://www.okeowoaderemi.com/	Copy new version of source file to target file: /site/templates/portfolio-lists.php => /site/assets/cache/FileCompiler/site/templates/portfolio-lists.php
+2017-01-15 12:52:54	guest	http://www.okeowoaderemi.com/	Copy new version of source file to target file: /site/templates/blog-tag.php => /site/assets/cache/FileCompiler/site/templates/blog-tag.php
+2017-01-15 12:52:54	guest	http://www.okeowoaderemi.com/	Copy new version of source file to target file: /site/templates/blog-comments.php => /site/assets/cache/FileCompiler/site/templates/blog-comments.php
+2017-01-15 12:52:54	guest	http://www.okeowoaderemi.com/	Copy new version of source file to target file: /site/templates/sitemap.php => /site/assets/cache/FileCompiler/site/templates/sitemap.php
+2017-01-15 12:52:54	guest	http://www.okeowoaderemi.com/	Copy new version of source file to target file: /site/templates/portfolio.php => /site/assets/cache/FileCompiler/site/templates/portfolio.php
+2017-01-15 12:52:54	guest	http://www.okeowoaderemi.com/	Copy new version of source file to target file: /site/templates/blog.php => /site/assets/cache/FileCompiler/site/templates/blog.php
+2017-03-09 14:35:54	?	?	Compiled file: /site/modules/ProcessBlog/BlogPublishDate.module
+2017-03-09 14:35:55	admin	http://www.okeowoaderemi.com/processwire/module/?reset=1&edit=ProcessBlog	Compiled file: /site/modules/ProcessBlog/ProcessBlog.module
+2017-03-09 14:35:56	admin	http://www.okeowoaderemi.com/processwire/module/?reset=1&edit=ProcessBlog	Compiled file: /site/modules/ProcessBlog/MarkupBlog.module
+2017-10-09 10:30:32	?	?	Compiled file: /site/modules/ProcessBlog/BlogPublishDate.module
+2017-10-09 10:30:34	admin	http://www.okeowoaderemi.com/processwire/module/?reset=1&edit=ProcessBlog	Compiled file: /site/modules/ProcessBlog/ProcessBlog.module
+2017-10-09 10:30:35	admin	http://www.okeowoaderemi.com/processwire/module/?reset=1&edit=ProcessBlog	Compiled file: /site/modules/ProcessBlog/MarkupBlog.module
+2017-10-09 10:35:01	admin	http://www.okeowoaderemi.com/processwire/module/?reset=1&edit=TemplateEngineSmarty	Compiled file: /site/modules/TemplateEngineSmarty/TemplateEngineSmarty.module
+2017-10-09 10:35:01	admin	http://www.okeowoaderemi.com/processwire/module/?reset=1&edit=TemplateEngineSmarty	Compiled file: /site/modules/TemplateEngineSmarty/smarty/libs/Smarty.class.php
+2017-10-09 10:35:01	admin	http://www.okeowoaderemi.com/processwire/module/?reset=1&edit=TemplateEngineSmarty	Compiled file: /site/modules/TemplateEngineSmarty/smarty/libs/Autoloader.php
+2017-10-09 11:07:47	guest	http://www.okeowoaderemi.com/articles/posts/review-of-dreamweaver-cs6-mobile-and-web-development-with-html5css3-and-jquery-mobile/	Compiled file: /site/modules/TemplateEngineSmarty/smarty/libs/sysplugins/smarty_internal_resource_file.php
+2017-10-09 11:07:47	guest	http://www.okeowoaderemi.com/articles/posts/review-of-dreamweaver-cs6-mobile-and-web-development-with-html5css3-and-jquery-mobile/	Compiled file: /site/modules/TemplateEngineSmarty/smarty/libs/sysplugins/smarty_template_compiled.php
+2017-10-09 11:07:47	guest	http://www.okeowoaderemi.com/articles/posts/review-of-dreamweaver-cs6-mobile-and-web-development-with-html5css3-and-jquery-mobile/	Compiled file: /site/modules/TemplateEngineSmarty/smarty/libs/sysplugins/smarty_internal_templatecompilerbase.php
+2017-10-09 11:07:48	guest	http://www.okeowoaderemi.com/articles/posts/review-of-dreamweaver-cs6-mobile-and-web-development-with-html5css3-and-jquery-mobile/	Compiled file: /site/modules/TemplateEngineSmarty/smarty/libs/sysplugins/smarty_internal_method_loadplugin.php
+2017-10-09 11:07:48	guest	http://www.okeowoaderemi.com/articles/posts/review-of-dreamweaver-cs6-mobile-and-web-development-with-html5css3-and-jquery-mobile/	Compiled file: /site/modules/TemplateEngineSmarty/smarty/libs/plugins/modifier.date_format.php
+2017-10-09 11:07:48	guest	http://www.okeowoaderemi.com/articles/posts/review-of-dreamweaver-cs6-mobile-and-web-development-with-html5css3-and-jquery-mobile/	Compiled file: /site/assets/cache/TemplateEngineSmarty_compile/fe692694d2ddd856efd64f1d0fa9764fdec341b0_0.file.plain.tpl.php
+2017-10-09 14:01:22	guest	http://www.okeowoaderemi.com/	Compiled file: /site/assets/cache/TemplateEngineSmarty_compile/92bccdea1f493580355670030f122e1791e373a0_0.file.home.tpl.php
+2017-10-09 14:01:23	guest	http://www.okeowoaderemi.com/	Compiled file: /site/assets/cache/TemplateEngineSmarty_compile/ae319912b8e1ed57d8aa2ba05019714cf665c59b_0.file.homepage.tpl.php
+2017-10-09 22:06:17	guest	http://www.okeowoaderemi.com/articles/posts/improving-the-performance-of-your-html5-app/	Maintenance/Remove target file: /site/assets/cache/FileCompiler/site/modules/TemplateEngineSmarty/smarty/libs/sysplugins/smarty_internal_get_include_path.php
+2017-10-09 22:06:17	guest	http://www.okeowoaderemi.com/articles/posts/improving-the-performance-of-your-html5-app/	Maintenance/Remove target file: /site/assets/cache/FileCompiler/site/modules/TemplateEngineSmarty/smarty/libs/sysplugins/smarty_internal_utility.php
+2017-10-09 22:06:17	guest	http://www.okeowoaderemi.com/articles/posts/improving-the-performance-of-your-html5-app/	Maintenance/Remove target file: /site/assets/cache/FileCompiler/site/modules/TemplateEngineSmarty/smarty/libs/sysplugins/smarty_internal_filter_handler.php
+2017-10-09 22:06:17	guest	http://www.okeowoaderemi.com/articles/posts/improving-the-performance-of-your-html5-app/	Maintenance/Remove target file: /site/assets/cache/FileCompiler/site/modules/TemplateEngineSmarty/smarty/libs/sysplugins/smarty_config_source.php
+2017-10-09 22:06:17	guest	http://www.okeowoaderemi.com/articles/posts/improving-the-performance-of-your-html5-app/	Maintenance/Remove target file: /site/assets/cache/FileCompiler/site/modules/TemplateEngineSmarty/smarty/libs/sysplugins/smarty_internal_function_call_handler.php
+2017-10-09 22:06:17	guest	http://www.okeowoaderemi.com/articles/posts/improving-the-performance-of-your-html5-app/	Maintenance/Remove target file: /site/assets/cache/FileCompiler/site/modules/TemplateEngineSmarty/smarty/libs/sysplugins/smarty_internal_config.php
+2017-10-09 22:06:17	guest	http://www.okeowoaderemi.com/articles/posts/improving-the-performance-of-your-html5-app/	Maintenance/Remove target file: /site/assets/cache/FileCompiler/site/modules/TemplateEngineSmarty/smarty/libs/sysplugins/smarty_internal_write_file.php
+2017-10-10 02:59:03	guest	http://www.okeowoaderemi.com/notes/	Compiled file: /site/assets/cache/TemplateEngineSmarty_compile/c095fcee6d13c7a90a6c667de2529e56d03c54d9_0.file.blog-posts.tpl.php
+2017-10-10 02:59:03	guest	http://www.okeowoaderemi.com/portfolio/	Compiled file: /site/assets/cache/TemplateEngineSmarty_compile/39dbf2ca2ba0a8f6d8398d6816739a6985b7a1d4_0.file.portfolio-lists.tpl.php
+2017-10-10 08:35:42	?	?	Compiled file: /site/modules/TemplateEngineFactory/TemplateEngineFactory.module.php
+2017-10-10 08:35:42	?	?	Compiled file: /site/modules/TemplateEngineFactory/TemplateEngineNull.php
+2017-10-10 08:35:42	?	?	Compiled file: /site/modules/TemplateEngineFactory/TemplateEngine.php
+2017-10-10 08:35:42	?	?	Compiled file: /site/modules/TemplateEngineFactory/TemplateEngineChunk.php
+2017-10-10 08:35:42	?	?	Compiled file: /site/modules/TemplateEngineFactory/TemplateEngineProcesswire.module.php
+2017-10-10 23:54:31	guest	http://www.okeowoaderemi.com/http404/	Maintenance/Remove target file: /site/assets/cache/FileCompiler/site/modules/TemplateEngineFactory/TemplateEngineFactory.module
+2017-10-10 23:54:31	guest	http://www.okeowoaderemi.com/http404/	Maintenance/Remove target file: /site/assets/cache/FileCompiler/site/modules/TemplateEngineFactory/TemplateEngineProcesswire.module
+2017-11-15 09:34:29	?	?	Compiled file: /site/modules/MarkupSEO/MarkupSEO.module
+2017-11-15 09:34:30	?	?	Compiled file: /site/modules/ProcessBlog/BlogPublishDate.module
+2017-11-15 09:34:32	?	?	Compiled file: /site/modules/TemplateEngineFactory/TemplateEngineFactory.module.php
+2017-11-15 09:34:32	?	?	Compiled file: /site/modules/TemplateEngineFactory/TemplateEngineNull.php
+2017-11-15 09:34:33	?	?	Compiled file: /site/modules/TemplateEngineFactory/TemplateEngine.php
+2017-11-15 09:34:33	?	?	Compiled file: /site/modules/TemplateEngineFactory/TemplateEngineChunk.php
+2017-11-15 09:34:39	guest	http://www.okeowoaderemi.com/remipw-next/	Compiled file: /site/modules/TemplateEngineSmarty/TemplateEngineSmarty.module
+2017-11-15 09:34:43	guest	http://www.okeowoaderemi.com/remipw-next/	Compiled file: /site/modules/TemplateEngineSmarty/smarty/libs/Smarty.class.php
+2017-11-15 09:34:43	guest	http://www.okeowoaderemi.com/remipw-next/	Compiled file: /site/modules/TemplateEngineSmarty/smarty/libs/Autoloader.php
+2017-11-15 09:35:02	guest	http://www.okeowoaderemi.com/remipw-next/	Compiled file: /site/modules/TemplateEngineSmarty/smarty/libs/sysplugins/smarty_internal_resource_file.php
+2017-11-15 09:35:06	guest	http://www.okeowoaderemi.com/remipw-next/	Compiled file: /site/modules/TemplateEngineSmarty/smarty/libs/sysplugins/smarty_template_compiled.php
+2017-11-15 09:35:13	guest	http://www.okeowoaderemi.com/remipw-next/	Compiled file: /site/modules/TemplateEngineSmarty/smarty/libs/sysplugins/smarty_internal_templatecompilerbase.php
+2017-11-15 09:35:42	guest	http://www.okeowoaderemi.com/remipw-next/	Compiled file: /site/modules/TemplateEngineSmarty/smarty/libs/sysplugins/smarty_internal_method_loadplugin.php
+2017-11-15 09:35:43	guest	http://www.okeowoaderemi.com/remipw-next/	Compiled file: /site/modules/TemplateEngineSmarty/smarty/libs/plugins/modifier.date_format.php
+2017-11-15 09:35:48	guest	http://www.okeowoaderemi.com/remipw-next/	Compiled file: /site/assets/cache/TemplateEngineSmarty_compile/a1d43a0d04ac098dfe61269a00fa31293ec156e0_0.file.home.tpl.php
+2017-11-15 09:36:01	guest	http://www.okeowoaderemi.com/remipw-next/	Compiled file: /site/assets/cache/TemplateEngineSmarty_compile/76e6771f238ae6e142d20ef29ad994cc47c583a3_0.file.homepage.tpl.php
+2017-11-15 10:38:06	guest	http://www.okeowoaderemi.com/remipw-next/articles/posts/koken-a-cms-for-photographers/	Compiled file: /site/assets/cache/TemplateEngineSmarty_compile/d2bcfacd609d102d019f47ea3ffdb5aa3f86f3f0_0.file.plain.tpl.php
+2017-11-15 10:43:21	guest	http://www.okeowoaderemi.com/remipw-next/processwire/login/	Compiled file: /site/modules/ProcessWireUpgrade/ProcessWireUpgradeCheck.module
+2017-11-15 10:43:21	guest	http://www.okeowoaderemi.com/remipw-next/processwire/login/	Compiled file: /site/modules/ProcessWireUpgrade/ProcessWireUpgradeCheck.config.php
+2017-11-15 10:43:21	guest	http://www.okeowoaderemi.com/remipw-next/processwire/login/	Compiled file: /site/templates/admin.php

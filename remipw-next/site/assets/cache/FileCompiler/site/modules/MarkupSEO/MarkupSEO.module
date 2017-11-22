@@ -1,0 +1,1096 @@
+<?php
+/**
+ * MarkupSEO
+ * The all-in-one SEO solution for ProcessWire.
+ *
+ * By Nico Knoll (http://nico.is/)
+ *
+ */
+
+class MarkupSEO extends \ProcessWire\WireData implements \ProcessWire\Module, \ProcessWire\ConfigurableModule {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => \ProcessWire\__('SEO'),
+			'version' => '0.8.7',
+			'summary' => \ProcessWire\__('The all-in-one SEO solution for ProcessWire.'),
+			'autoload' => true,
+			'requires' => array('ProcessWire>=2.4.0', 'PHP>=5.3.8')
+		);
+	}
+
+
+	/**
+	 * Default configuration
+	 *
+	 */
+	static public function getDefaultConfig() {
+		return array(
+			'sitename' 			=> '', 
+			'author' 			=> '', 
+			'title' 				=> '', 
+			'titleSmart' 		=> 'title', 
+			'keywords' 			=> '', 
+			'keywordsSmart' 		=> '', 
+			'description' 		=> '', 
+			'descriptionSmart' 	=> '', 
+			'image' 				=> '', 
+			'imageSmart' 		=> '',
+			'titleFormat' 		=> '', 
+			'canonical' 			=> '', 
+			'canonicalProtocol' => 'auto',
+			'robots' 			=> '', 
+			'custom' 			=> '',
+			'includeGenerator' 	=> 1,
+			'includeOpenGraph' 	=> 1,
+			'includeTwitter' 	=> 1,
+			'twitterUsername' 	=> '',
+			'useParents' 		=> 0,
+			'method' 			=> 'auto',
+			'addWhitespace'		=> 1,
+			'includeTemplates' 	=> array(),
+			'usePermission' 		=> 0,
+			'googleAnalytics' 	=> '',
+			'googleAnalyticsAnonymizeIP' => false,
+			'piwikAnalyticsUrl' 	=> '',
+			'piwikAnalyticsIDSite' => '',
+			'hardLimit'			=> 0,
+			'titleLimit'			=> '60',
+			'descriptionLimit'	=> '160'
+		);
+	}
+
+	static public function getDefaultFields() {
+		return array(
+			'seo_tab',
+			'seo_title',
+			'seo_keywords',
+			'seo_description',
+			'seo_image',
+			'seo_robots',
+			'seo_custom',
+			'seo_canonical',
+			'seo_tab_END'
+		);
+	}
+
+
+	/**
+	 * Populate default configuration (will be overwritten after constructor with user's own configuration)
+	 *
+	 */
+	public function __construct() {
+		foreach(self::getDefaultConfig() as $key => $value) {
+			$this->$key = $value;
+		}
+	}
+
+
+	 	/**
+	 * Initializing the hooks
+	 *
+	 */
+	 public function init() {
+		 // frontend hooks
+		 $this->addHookAfter("Page::render", $this, 'hookMethodAuto');
+	 }
+
+	public function ready() {
+		// backend hooks (Fix by @peterfoeng)
+		if(@$this->page->process == 'ProcessPageEdit') {
+			$editedPage = \ProcessWire\wire('pages')->get($this->config->input->get->id);
+			
+			if(!($editedPage instanceof \ProcessWire\NullPage)) {
+				if(in_array($editedPage->template->name, $this->includeTemplates)) {
+					$this->addHookAfter("ProcessPageEdit::buildFormContent", $this, 'hookCustomizeSeoTab');
+				}
+			}
+		}
+
+
+		// frontend hooks
+		if($this->page->template != 'admin' && in_array($this->page->template->name, $this->includeTemplates)) {
+			$this->addHookProperty("Page::seo", $this, 'hookFrontendPage');
+			$this->addHookProperty("Config::seo", $this, 'hookFrontendConfig');
+		}
+	}
+
+
+	/**
+	 * The hooking functions
+	 *
+	 */
+	public function hookMethodAuto(\ProcessWire\HookEvent $event) {
+		if($this->method != 'auto' || $this->page->template == 'admin' || !in_array($this->page->template->name, $this->includeTemplates)) return;
+
+		// inject rendered meta tags into page
+		$dataRendered = $this->page->seo->render;
+		$event->return = str_ireplace("</head>", $dataRendered.'</head>', $event->return); 
+	}
+
+
+	public function hookCustomizeSeoTab(\ProcessWire\HookEvent $e) {
+		$page = \ProcessWire\wire('pages')->get($this->config->input->get->id);
+		$configData = \ProcessWire\wire('modules')->getModuleConfigData($this);
+
+		$titleField = (empty($configData['useParents']) or $configData['useParents'] == true) ? array('seo_title') : $configData['titleSmart'];
+		$title = '';
+		foreach ($titleField as $field) {
+			if (!empty($page->$field)) {
+				$title = $page->$field;
+				break;
+			}
+		}
+
+		if(!$e->return->get('seo_tab')) return;
+
+		// Add google preview
+		$field = $this->modules->get("InputfieldMarkup");
+		$field->label = $this->_("Google Preview");
+		$field->description = $this->_('Updates while you type in a title or description.');
+		$field->value = 	$this->javascriptCounter($configData['hardLimit'], $configData['titleLimit'], $configData['descriptionLimit']).
+										$this->javascriptAutocomplete().
+										$this->javascriptGooglePreview().
+										$this->getGooglePreview($title, $page->seo_canonical, $page->seo_description); // add javascript, too
+		$e->return->insertAfter($field, $e->return->get('seo_tab'));
+
+	}
+
+
+	/**
+	 * Generates a google styled preview for the SEO Tab
+	 *
+	 */
+	private function getGooglePreview($title, $url, $description) {
+		$page = \ProcessWire\wire('pages')->get($this->config->input->get->id);
+
+		$html  = '<div class="SEO_google_wrapper"><span class="SEO_google_title">'.($title ? $title : 'Title').'</span>';
+		$html .= '<span class="SEO_google_link">'.($url ? $url : $page->httpUrl).'</span>';
+		$html .= '<span class="SEO_google_description">'.($description ? substr($description, 0, 155) : 'This is just a short description.').'.</span></div>';
+		$html .= '<style>
+					.SEO_google_wrapper{float:left;width:512px;margin:10px 0;}
+					.SEO_google_title{color:#1a0dab;clear:both;width:auto;float:left;font-family:arial,sans-serif;font-size:16px;}
+					.SEO_google_title:hover{text-decoration:underline;cursor:pointer;}
+					.SEO_google_link{height:17px;line-height:16px;color:#006621;font-style:normal;font-size:13px;clear:both;float:left;font-family:arial,sans-serif;overflow: hidden;width: 100%;text-overflow: ellipsis;}
+					.SEO_google_description{line-height:16px;color:#545454;font-style:normal;font-size:13px;clear:both;float:left;font-family:arial,sans-serif;}
+					</style>';
+
+		return $html;
+	}
+
+
+	/**
+	 * Returns an object including all the data (mixed config and page)
+	 *
+	 */
+	public function hookFrontendPage(\ProcessWire\HookEvent $event) {
+		// get page seo data
+		$page = \ProcessWire\wire('pages')->get($event->object->id);
+		$pageData = array();
+		foreach($page->fields as $field) {
+			if(preg_match("%^seo_(.*)%Uis", $field->name) && $field->name != 'seo_tab' && $field->name != 'seo_tab_END') {
+				$pageData[str_replace('seo_', '', $field->name)] = $page->get($field->name);
+			}
+		}
+
+		// get config seo data
+		$configData = \ProcessWire\wire('modules')->getModuleConfigData($this);
+
+		// override styles for multisite module, if it's installed
+		if ($multiSite = $this->modules->getModule('Multisite', array('noPermissionCheck' => true, 'noInit' => true))) {
+			if ($this->config->MultisiteDomains && array_key_exists($multiSite->domain, $this->config->MultisiteDomains) && array_key_exists('markupSEO', $this->config->MultisiteDomains[$multiSite->domain])) {
+				$configDataOverrides = $this->config->MultisiteDomains[$multiSite->domain]['markupSEO']; // get special site data
+				$configData = array_merge($configData, $configDataOverrides); // merge module config data with config data for special site
+
+				// override data in module scope, otherwise the one from module settings will be used
+				foreach(self::getDefaultConfig() as $key => $value) {
+					if (array_key_exists($key, $configData)) $this->$key = $configData[$key];
+				}
+			}
+		}
+
+		foreach($pageData as $fieldKey => $fieldValue) {
+			// if the field has content we can continue
+			if($fieldValue != '') continue;
+
+			// otherwise we try do add default content
+			if($configData['useParents']) {
+				// use parent data
+				$pageData[$fieldKey] = $this->getParentValue($page, $fieldKey);
+			} else {
+				// use smart data or default data
+				switch($fieldKey) {
+					case 'title': 
+						if($configData['title']) {
+							$pageData['title'] = $configData['title'];
+						} elseif($configData['titleSmart'] && $page->get(implode('|', $configData['titleSmart'])) != '') {
+							$pageData['title'] = strip_tags($page->get(implode('|', $configData['titleSmart'])));
+						}
+					break;
+					case 'keywords': 
+						if($configData['keywords']) {
+							$pageData['keywords'] = $configData['keywords'];
+						} elseif($configData['keywordsSmart'] && $page->get(implode('|', $configData['keywordsSmart'])) != '') {
+							$pageData['keywords'] = strip_tags($page->get(implode('|', $configData['keywordsSmart'])));
+						}
+					break;
+					case 'description': 
+						if($configData['description']) {
+							$pageData['description'] = $configData['description'];
+						} elseif($configData['descriptionSmart'] && $page->get(implode('|', $configData['descriptionSmart'])) != '') {
+							$pageData['description'] = strip_tags($page->get(implode('|', $configData['descriptionSmart'])));
+						}
+					break;
+					case 'image': 
+						if($configData['imageSmart'] && count($page->get(implode('|', $configData['imageSmart']))) > 0) {
+							$imageFields = $page->get(implode('|', $configData['imageSmart']));
+							try {
+								$pageData['image'] = $page->get(implode('|', $configData['imageSmart']))->first()->httpUrl;
+							} catch (Exception $e) {
+								$pageData['image'] = $page->get(implode('|', $configData['imageSmart']))->httpUrl;
+							}
+						}
+						if(!$pageData['image'] && $configData['image']) {
+							$pageData['image'] = $configData['image'];
+						}
+					break;
+				}
+
+			}
+
+
+		}
+
+
+		// add generator
+		if($configData['includeGenerator']) $pageData['generator'] = 'ProcessWire '.\ProcessWire\wire('config')->version;
+
+		// add author
+		if($configData['author']) $pageData['author'] = $configData['author'];
+
+		// add robots
+		if($configData['robots'] && empty($pageData['robots'])) $pageData['robots'] = implode(', ', $configData['robots']);
+
+		// add opengraph and canonical
+		if(!$pageData['canonical']) {
+			if($configData['canonicalProtocol'] == 'auto') {
+				if(\ProcessWire\wire('config')->https == true) $configData['canonicalProtocol'] = 'https';
+			}
+
+			if($configData['canonicalProtocol'] == 'https') {
+				$pageData['canonical'] = preg_replace('%^https?%i', 'https', $page->httpUrl);
+			} else {
+				$pageData['canonical'] = $page->httpUrl;
+			}
+
+		}
+
+
+		if($configData['includeOpenGraph']) {
+			$pageData['og:site_name'] = $configData['sitename'];
+			$pageData['og:title'] = $pageData['title'];
+			$pageData['og:url'] = $pageData['canonical'];
+			$pageData['og:description'] = $pageData['description'];
+			$pageData['og:type'] = 'website'; // TODO: Add more options
+			$pageData['og:image'] = $pageData['image'];
+		}	
+
+		// add twitter
+		if($configData['includeTwitter']) {
+			$pageData['twitter:card'] = 'summary'; // TODO: Add more options
+			$pageData['twitter:site'] = '@'.$configData['twitterUsername'];
+			$pageData['twitter:title'] = $pageData['title'];
+			$pageData['twitter:url'] = $pageData['canonical'];
+			$pageData['twitter:description'] = $pageData['description'];
+			$pageData['twitter:image'] = $pageData['image'];
+		}		
+
+
+		//add custom
+		$pageData['custom'] = (array)$this->parseCustom($pageData['custom']);
+		$configData['custom'] = (array)$this->parseCustom($configData['custom']);
+
+		$pageData['custom'] = array_merge($configData['custom'], $pageData['custom']);
+
+		foreach($pageData['custom'] as $key => $value) {
+			$pageData[$key] = $value; 
+		}
+
+		// add google analytics
+		$googleAnalytics = '';
+		if($configData['googleAnalytics']) {
+			$googleAnalytics = '
+			<!-- Google Analytics -->
+			<script>
+				(function(i,s,o,g,r,a,m){i[\'GoogleAnalyticsObject\']=r;i[r]=i[r]||function(){
+				(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+				m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+		 		})(window,document,\'script\',\'//www.google-analytics.com/analytics.js\',\'ga\');
+
+				ga(\'create\', \''.$configData['googleAnalytics'].'\', \'auto\');
+			';
+			// Add "anonymizeIp" option if activated
+			if( $configData['googleAnalyticsAnonymizeIP'] ) {
+				$googleAnalytics .= 'ga(\'set\', \'anonymizeIp\', true)';
+			}
+			$googleAnalytics .= ';
+				ga(\'send\', \'pageview\');
+
+			</script>
+			<!-- End: Google Analytics -->';
+		}
+		
+		$piwikAnalytics = '';
+		if($configData['piwikAnalyticsUrl']) {			
+			$piwikAnalytics = '<!-- Piwik -->
+			<script type="text/javascript">
+				var _paq = _paq || [];
+				(function(){ var u=(("https:" == document.location.protocol) ? "https://'.$configData['piwikAnalyticsUrl'].'/" : "http://'.$configData['piwikAnalyticsUrl'].'/");
+				_paq.push([\'setSiteId\', '.$configData['piwikAnalyticsIDSite'].']);
+				_paq.push([\'setTrackerUrl\', u+\'piwik.php\']);
+				_paq.push([\'trackPageView\']);
+				_paq.push([\'enableLinkTracking\']);
+				var d=document, g=d.createElement(\'script\'), s=d.getElementsByTagName(\'script\')[0]; g.type=\'text/javascript\'; g.defer=true; g.async=true; g.src=u+\'piwik.js\';
+				s.parentNode.insertBefore(g,s); })();
+			</script>
+			<!-- End Piwik Code -->';
+		}
+
+
+		// add "render"
+		$rendered = '';
+		foreach($pageData as $name => $content) {
+
+			switch($name) {
+				case 'custom':
+					break;
+				case 'title':
+					if($this->titleFormat == '') break;
+					$rendered .= '<title>'.$this->parseTitle($page, $content).'</title>'.PHP_EOL; 
+					break;
+				case 'canonical':
+					$rendered .= '<link rel="canonical" href="'.$content.'" />'.PHP_EOL;
+					break;
+				default:
+					if (strstr($name, 'og:')) {
+						$rendered .= '<meta property="'.$name.'" content="'.$content.'" />'.PHP_EOL;
+					} else {
+						$rendered .= '<meta name="'.$name.'" content="'.$content.'" />'.PHP_EOL;
+					}
+					break;
+			}
+
+		}
+
+		// replace whitespaces and add analytics code
+		$rendered .= preg_replace('/^\s+|\s+$/m', '', $googleAnalytics).PHP_EOL;
+		$rendered .= preg_replace('/^\s+|\s+$/m', '', $piwikAnalytics).PHP_EOL;
+
+		if($this->addWhitespace) {
+			$renderedTmp = '';
+			foreach(explode(PHP_EOL, $rendered) as $line) {
+				$renderedTmp .= "\t".$line.PHP_EOL;
+			}				
+			$rendered = $renderedTmp;
+		}
+
+		$pageData['render'] = $pageData['rendered'] = $rendered;
+		$event->return = (object)$pageData;
+	}
+
+
+
+	private function getParentValue($page, $what = '') {
+		if($page->id == 1) return '';
+		$parent = $page->parent();
+		if($parent->get('seo_'.$what) != '') return $parent->get('seo_'.$what);
+		return $this->getParentValue($parent, $what);
+	}
+
+
+	private function parseTitle($page, $title) {
+		$tags = array(
+			'title' => $title,
+			'sitename' => $this->sitename
+		);
+
+		$return = $this->titleFormat;
+		foreach($tags as $tag => $value) {
+			$return = str_replace("{".$tag."}", $value, $return);
+		}
+
+		return $return;
+	}
+
+
+	private function parseCustom($custom) {
+		if(trim($custom) == '') return;
+
+		$return = '';
+		$lines = explode(PHP_EOL, $custom);
+		foreach($lines as $line) {
+			list($key, $value) = explode(':=', $line);
+			$key = preg_replace('%[^A-Za-z0-9\-\.\:\_]+%', '', str_replace(' ', '-', trim($key)));	
+			$value = trim(\ProcessWire\wire('sanitizer')->text(html_entity_decode($value)));
+			$return[$key] = $value;
+		}
+
+		return $return;
+	}
+
+
+	/**
+	 * Returns an object including all the data (only config/defaults)
+	 *
+	 */
+	public function hookFrontendConfig(\ProcessWire\HookEvent $event) {
+		$moduleData = \ProcessWire\wire('modules')->getModuleConfigData($this);
+		$moduleData['custom'] = (array)$this->parseCustom($moduleData['custom']);
+		$moduleData['robots'] = is_array($moduleData['robots']) ? implode(', ', $moduleData['robots']) : $moduleData['robots'];
+
+		$moduleData = array_merge($moduleData, $moduleData['custom']);
+
+		$event->return = (object)$moduleData;
+	}
+
+
+
+
+	/**
+	 * Create the modules setting page
+	 *
+	 */
+	static public function getModuleConfigInputfields(array $data) {
+		// since this is a static function, we can't use $this->modules, so get them from the global wire() function
+		$modules = \ProcessWire\wire('modules');
+		$input = \ProcessWire\wire('input');
+		$fields = \ProcessWire\wire('fields');
+		$tmpTemplates = \ProcessWire\wire('templates');
+		foreach($tmpTemplates as $template) { // exclude system fields
+			if($template->flags & \ProcessWire\Template::flagSystem) continue;
+			$templates[] = $template;
+		}
+
+		// merge default config settings (custom values overwrite defaults)
+		$defaults = self::getDefaultConfig();
+		$data = array_merge($defaults, $data);
+
+
+
+
+
+		// Add/remove seo fields from templates
+		if($input->post->submit_save_module) {
+
+			$includedTemplates = (array)$input->post->includeTemplates;
+
+			foreach($templates as $template) {
+				if(in_array($template->name, $includedTemplates)) {
+					if($template->hasField('seo_tab')) {
+						continue;
+					} else {
+						// add seo fields
+						$seoFields = self::getDefaultFields();
+						unset($seoFields[count($seoFields)-1]); // unset closing seo_tab_END
+
+						foreach($fields as $seoField) {
+							if(preg_match("%^seo_(.*)%Uis", $seoField->name) && !in_array($seoField->name, self::getDefaultFields())) {
+								array_push($seoFields, $seoField->name);
+							}
+						}
+
+						array_push($seoFields, 'seo_tab_END'); // add closing again
+
+						//add fields to template
+						foreach($seoFields as $templateField) {
+							$template->fields->add($fields->get($templateField));
+						}
+						$template->fields->save();
+					}
+				} else {			
+					if($template->hasField('seo_tab')) {
+						// remove seo fields						
+						foreach($template->fields as $templateField) {
+							if(in_array($templateField->name, self::getDefaultFields())) {
+								$template->fields->remove($templateField);
+							}
+						}
+						$template->fields->save();
+					} else {
+						continue;
+					}
+				}
+			}
+
+		}
+
+
+
+
+		// this is a container for fields, basically like a fieldset
+		$form = new \ProcessWire\InputfieldWrapper();
+
+		// Included fields
+		$field = $modules->get("InputfieldAsmSelect");
+		$field->name = "includeTemplates";
+		$field->label = \ProcessWire\__("Templates with SEO tab");
+		$field->description = \ProcessWire\__("Choose the templates which should get a SEO tab.");
+		foreach($templates as $template) $field->addOption($template->name);
+		$field->value = $data['includeTemplates'];
+		$field->notes = \ProcessWire\__('Be careful with this field. If you remove an entry all of it\'s "seo_*" fields get deleted (including the data).');
+		$form->add($field);
+
+
+		// Author
+		$field = $modules->get("InputfieldText");
+		$field->name = "author";
+		$field->label = \ProcessWire\__("Author");
+		$field->description = "";
+		$field->value = $data['author'];
+		$form->add($field);
+
+		// Site Name
+		$field = $modules->get("InputfieldText");
+		$field->name = "sitename";
+		$field->label = \ProcessWire\__("Site Name");
+		$field->description = "";
+		$field->value = $data['sitename'];
+		$form->add($field);
+
+
+		$fieldset = $modules->get("InputfieldFieldset");
+		$fieldset->label = "Advanced";
+		$fieldset->collapsed = \ProcessWire\Inputfield::collapsedNo;
+		$form->add($fieldset);
+
+		$field = $modules->get("InputfieldCheckbox");
+		$field->name = "useParents";
+		$field->label = \ProcessWire\__("Use parent's values if empty?");
+		$field->description = \ProcessWire\__("Parent's values will be used as default if you don't define page specific meta data and leave the fields below blank and don't choose smart fields.");
+		$field->checked = $data['useParents'];
+		$fieldset->add($field);
+
+		// Default Title
+		$field = $modules->get("InputfieldText");
+		$field->name = "title";
+		$field->label = \ProcessWire\__("Title");
+		$field->description = \ProcessWire\__("A good length for a title is 60 characters.");
+		$field->value = $data['title'];
+		$field->columnWidth = '50%';
+		$field->showIf = 'useParents=0';
+		$field->set('class', 'seo_autocomplete');
+		$fieldset->add($field);
+
+		$field = $modules->get("InputfieldAsmSelect");
+		$field->name = "titleSmart";
+		$field->label = \ProcessWire\__("Smart Title");
+		$field->description = \ProcessWire\__("We will use those fields (in this particular order) if you don't fill in the title field");
+		foreach($fields as $selectField) $field->addOption($selectField->name);
+		$field->value = $data['titleSmart'];
+		$field->columnWidth = '50%';
+		$field->showIf = 'useParents=0';
+		$fieldset->add($field);
+
+		// Default Keywords
+		$field = $modules->get("InputfieldText");
+		$field->name = "keywords";
+		$field->label = \ProcessWire\__("Keywords");
+		$field->description = "";
+		$field->value = $data['keywords'];
+		$field->columnWidth = '50%';
+		$field->showIf = 'useParents=0';
+		$fieldset->add($field);
+
+		$field = $modules->get("InputfieldAsmSelect");
+		$field->name = "keywordsSmart";
+		$field->label = \ProcessWire\__("Smart Keywords");
+		$field->description = \ProcessWire\__("We will use those fields (in this particular order) if you don't fill in the keywords field");
+		foreach($fields as $selectField) $field->addOption($selectField->name);
+		$field->value = $data['keywordsSmart'];
+		$field->columnWidth = '50%';
+		$field->showIf = 'useParents=0';
+		$fieldset->add($field);
+
+		// Default Description
+		$field = $modules->get("InputfieldText");
+		$field->name = "description";
+		$field->label = \ProcessWire\__("Description");
+		$field->description = \ProcessWire\__("A good length for a description is 160 characters.");
+		$field->value = $data['description'];
+		$field->columnWidth = '50%';
+		$field->showIf = 'useParents=0';
+		$field->set('class', 'seo_autocomplete');
+		$fieldset->add($field);
+
+		$field = $modules->get("InputfieldAsmSelect");
+		$field->name = "descriptionSmart";
+		$field->label = \ProcessWire\__("Smart Description");
+		$field->description = \ProcessWire\__("We will use those fields (in this particular order) if you don't fill in the description field");
+		foreach($fields as $selectField) $field->addOption($selectField->name);
+		$field->value = $data['descriptionSmart'];
+		$field->columnWidth = '50%';
+		$field->showIf = 'useParents=0';
+		$fieldset->add($field);
+
+		// Default Image
+		$field = $modules->get("InputfieldText");
+		$field->name = "image";
+		$field->label = \ProcessWire\__("Image");
+		$field->description = "";
+		$field->value = $data['image'];
+		$field->columnWidth = '50%';
+		$field->showIf = 'useParents=0';
+		$fieldset->add($field);
+
+		$field = $modules->get("InputfieldAsmSelect");
+		$field->name = "imageSmart";
+		$field->label = \ProcessWire\__("Smart Image");
+		$field->description = \ProcessWire\__("We will use the first image from the specified image field.");
+		foreach($fields->find('type=FieldtypeImage|FieldtypeCroppableImage|FieldtypeImageFocusArea') as $selectField) $field->addOption($selectField->name);
+		$field->value = $data['imageSmart'];
+		$field->columnWidth = '50%';
+		$field->showIf = 'useParents=0';
+		$fieldset->add($field);
+
+
+		// title format
+		$field = $modules->get("InputfieldText");
+		$field->name = "titleFormat";
+		$field->label = \ProcessWire\__("Title Format");
+		$field->description = \ProcessWire\__("Use this field to adjust the title format. If left empty the <title> tag won't be included.");
+		$field->value = $data['titleFormat'];
+		$field->columnWidth = '50%';
+		$field->notes = \ProcessWire\__('You can use: {title}, {sitename}');
+		$fieldset->add($field);
+
+
+		// https or http format
+		$field = $modules->get("InputfieldSelect");
+		$field->name = "canonicalProtocol";
+		$field->label = \ProcessWire\__("Protocol for canonical links");
+		$field->description = \ProcessWire\__("Choose if you always want to use \"https\" or \"http\" or if you want automatic detection.");
+		$field->notes = \ProcessWire\__('Automatic detection will check if $config->https is set to true.');
+		$field->value = $data['canonicalProtocol'];
+		$field->addOption('auto', 'Automatically');
+		$field->addOption('http', 'http');
+		$field->addOption('https', 'https');
+		$field->required = true;
+		$field->columnWidth = '50%';
+		$fieldset->add($field);
+
+
+		// Custom
+		$field = $modules->get("InputfieldTextarea");
+		$field->name = "custom";
+		$field->label = \ProcessWire\__("Custom");
+		$field->description = \ProcessWire\__("If you want to add other meta tags, you can do it here.");
+		$field->value = $data['custom'];
+		$field->notes = \ProcessWire\__('Please use this schema: name := content. One tag per line. Special characters are only allowed in the content part and get converted to HTML.');
+		$fieldset->add($field);
+
+
+		// Robots
+		$field = $modules->get("InputfieldAsmSelect");
+		$field->name = "robots";
+		$field->label = \ProcessWire\__("Robots");
+		$field->description = \ProcessWire\__("The robots settings will tell search engine which data they are allowed to include/index.");
+		$field->addOption('index');
+		$field->addOption('follow');
+		$field->addOption('archive');
+		$field->addOption('noindex');
+		$field->addOption('nofollow');
+		$field->addOption('noarchive');
+		$field->addOption('nosnippet');
+		$field->addOption('noodp');
+		$field->addOption('noydir');
+		$field->value = $data['robots'];
+		$fieldset->add($field);
+
+		// Limits
+		$field = $modules->get("InputfieldCheckbox");
+		$field->name = "hardLimit";
+		$field->label = \ProcessWire\__("Enforce hard limits?");
+		$field->description = \ProcessWire\__('This toggles the hard limit for any defined limits. If checked it prevents more than the defined characters to be entered.');
+		$field->checked = $data['hardLimit'];
+		$field->columnWidth = '33%';
+		$fieldset->add($field);
+
+		$field = $modules->get("InputfieldInteger");
+		$field->name = "titleLimit";
+		$field->label = \ProcessWire\__("SEO title character limit");
+		$field->description = \ProcessWire\__('The character limit for the SEO title, recommended and default is 60.');
+		$field->value = $data['titleLimit'];
+		$field->attr('min', '1');
+		$field->columnWidth = '34%';
+		$fieldset->add($field);
+
+		$field = $modules->get("InputfieldInteger");
+		$field->name = "descriptionLimit";
+		$field->label = \ProcessWire\__("SEO description character limit");
+		$field->description = \ProcessWire\__('The character limit for the SEO title, recommended and default is 160.');
+		$field->value = $data['descriptionLimit'];
+		$field->attr('min', '1');
+		$field->columnWidth = '33%';
+		$fieldset->add($field);
+
+
+		// Include stuff
+		$field = $modules->get("InputfieldCheckbox");
+		$field->name = "includeGenerator";
+		$field->label = \ProcessWire\__("Include Generator?");
+		$field->description = \ProcessWire\__('This will include a meta tag called "generator" to show that this site was created with "ProcessWire 2.x.x".');
+		$field->checked = $data['includeGenerator'];
+		$field->columnWidth = '33%';
+		$fieldset->add($field);
+
+		$field = $modules->get("InputfieldCheckbox");
+		$field->name = "includeOpenGraph";
+		$field->label = \ProcessWire\__("Include (Basic) Open Graph?");
+		$field->description = \ProcessWire\__('The Open Graph meta tags are prefered by Facebook and several other sites.');
+		$field->checked = $data['includeOpenGraph'];
+		$field->columnWidth = '34%';
+		$fieldset->add($field);
+
+		$field = $modules->get("InputfieldCheckbox");
+		$field->name = "includeTwitter";
+		$field->label = \ProcessWire\__("Include (Basic) Twitter Cards?");
+		$field->description = \ProcessWire\__('This will help Twitter to extract the right data from your site.');
+		$field->checked = $data['includeTwitter'];
+		$field->columnWidth = '33%';
+		$fieldset->add($field);
+
+		$field = $modules->get("InputfieldText");
+		$field->name = "twitterUsername";
+		$field->label = \ProcessWire\__("Twitter Username");
+		$field->description = \ProcessWire\__('Your Twitter username (without "@") is needed for the "include Twitter" option.');
+		$field->value = $data['twitterUsername'];
+		$field->columnWidth = '100%';
+		$field->showIf = 'includeTwitter=1';
+		$fieldset->add($field);
+
+		// Choose Method
+		$field = $modules->get("InputfieldRadios");
+		$field->name = "method";
+		$field->label = \ProcessWire\__("Method");
+		$field->description = \ProcessWire\__("Do you want to get the generated code included automatically in the <head> part of your site?");
+		$field->addOption('auto', \ProcessWire\__('Automatically'));
+		$field->addOption('manual', \ProcessWire\__('Manually'));
+		$field->value = $data['method'];
+		$field->columnWidth = '50%';
+		$fieldset->add($field);
+
+		// Add Whitespace
+		$field = $modules->get("InputfieldCheckbox");
+		$field->name = "addWhitespace";
+		$field->label = \ProcessWire\__("Add whitespace before tags?");
+		$field->description = \ProcessWire\__('This will add a little white space (one tab indent) before your meta tags in the "rendered" version. Perfectly if you use the automatically insert method.');
+		$field->checked = $data['addWhitespace'];
+		$field->columnWidth = '50%';
+		$fieldset->add($field);
+
+
+		$fieldset = $modules->get("InputfieldFieldset");
+		$fieldset->label = "Tracking";
+		$fieldset->collapsed = \ProcessWire\Inputfield::collapsedNo;
+		$form->add($fieldset);
+
+		// Analytics code
+		$field = $modules->get("InputfieldText");
+		$field->name = "googleAnalytics";
+		$field->label = \ProcessWire\__("Google Analytics Code");
+		$field->description = \ProcessWire\__("Google Analytics code will be embedded if this field is populated.");
+		$field->notes = \ProcessWire\__('How to find your code: https://support.google.com/analytics/answer/1008080. It should look like: UA-XXXXXXX-X.');
+		$field->value = $data['googleAnalytics'];
+		$field->columnWidth = '50%';
+		$fieldset->add($field);
+
+		// Anonymize IP
+		$field = $modules->get("InputfieldCheckbox");
+		$field->name = "googleAnalyticsAnonymizeIP";
+		$field->label = \ProcessWire\__("Google Analytics: Anonymize IPs?");
+		$field->description = \ProcessWire\__('In some countrys (like Germany) anonymizing the visitors IP in Google Analytics is an obligatory setting for legal reasons.');
+		$field->checked = $data['googleAnalyticsAnonymizeIP'];
+		$field->columnWidth = '50%';
+		$fieldset->add($field);
+
+		
+		$field = $modules->get("InputfieldText");
+		$field->name = "piwikAnalyticsUrl";
+		$field->label = \ProcessWire\__("Piwik Analytics URL");
+		$field->description = \ProcessWire\__("Piwik code will be embedded if both Piwik fields are populated.");
+		$field->value = $data['piwikAnalyticsUrl'];
+		$field->notes = \ProcessWire\__('Url without http:// or https://');
+		$field->columnWidth = '50%';
+		$fieldset->add($field);
+		
+		$field = $modules->get("InputfieldText");
+		$field->name = "piwikAnalyticsIDSite";
+		$field->label = \ProcessWire\__("Piwik Analytics IDSite");
+		$field->description = \ProcessWire\__("Piwik code will be embedded if both Piwik fields are populated.");
+		$field->value = $data['piwikAnalyticsIDSite'];
+		$field->columnWidth = '50%';
+		$fieldset->add($field);
+
+
+		$fieldset = $modules->get("InputfieldFieldset");
+		$fieldset->label = "More...";
+		$fieldset->collapsed = \ProcessWire\Inputfield::collapsedNo;
+		$form->add($fieldset);
+
+		$field = $modules->get("InputfieldMarkup");
+		$field->label = \ProcessWire\__("Multilanguage");
+		$line[] = \ProcessWire\__('If your site uses multiple languages you can use SEO fields in multiple languages to. To archive this, you have to change the fieldtypes of the SEO fields manually:');
+		$line[] = \ProcessWire\__('1. Go to "Setup > Fields". There are a lot of fields in the schema "seo_*". Now click on the field you want to have in multiple languages.');
+		$line[] = \ProcessWire\__('2. Change the "Type" e.g. from "Text" to "TextLanguage" and click "Save". That\'s it.');
+		$field->value = implode('<br>', $line);
+		$fieldset->add($field);
+
+
+		$field = $modules->get("InputfieldMarkup");
+		$field->label = \ProcessWire\__("Recommendations");
+		$string = \ProcessWire\__('For an even better SEO experience there are a couple of other modules I can recommend:');
+		$field->value = '<p>'.$string.'</p>
+						<ul>
+							<li><a target="_blank" href="http://modules.processwire.com/modules/markup-sitemap-xml/">Sitemap</a> (MarkupSitemapXML)</li>
+							<li><a target="_blank" href="http://modules.processwire.com/modules/page-path-history/">Page Path History</a> (PagePathHistory)</li>
+							<li><a target="_blank" href="http://modules.processwire.com/modules/search-engine-referrer-tracker/">Search Engine Referrer Tracker</a> (SearchEngineReferrerTracker)</li>
+							<li><a target="_blank" href="http://modules.processwire.com/modules/process-redirects/">Redirects</a> (ProcessRedirects)</li>
+							<li><a target="_blank" href="http://modules.processwire.com/modules/all-in-one-minify/">AIOM+</a> (AllInOneMinify)</li>
+						</ul>'.self::javascriptAutocomplete(); // Add javascript
+
+		$fieldset->add($field);
+
+
+		$field = $modules->get("InputfieldMarkup");
+		$field->label = \ProcessWire\__("Support development");
+		$string = \ProcessWire\__('This is and stays a free, open-source module. If you like it and want to support its development you can use this button:');
+		$field->value = '<p>'.$string.'</p>
+					<a target="_blank" href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=8RTGCB7NCWE2J"><img src="https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!"></a>'; 
+
+		$fieldset->add($field);
+
+		return $form;
+	}
+
+	static private function javascriptCounter($hardLimit, $titleLimit, $descriptionLimit) {
+		$string = \ProcessWire\__('characters used');
+		$code = "
+		$(document).ready(function(){
+			$('#Inputfield_seo_title').data('seolimit', ".$titleLimit.");
+			$('#Inputfield_seo_description').data('seolimit', ".$descriptionLimit.");
+
+			if(".($hardLimit ?: 0).") {
+				$('#Inputfield_seo_title').attr('maxlength', ".$titleLimit.");
+				$('#Inputfield_seo_description').attr('maxlength', ".$descriptionLimit.");
+			}
+
+			$('#Inputfield_seo_title, #Inputfield_seo_description').each(function(){
+				$(this).before('<p class=\"counter notes\"><span class=\"remainingChars\">' + $(this).val().length + '</span>/' + $(this).data('seolimit') + ' ".$string.".</p>');
+
+				$(this).on('change load propertychange keyup input paste', function(el){
+					$(this).siblings('.counter').children('.remainingChars').html($(this).val().length);
+				});
+			});
+		});
+		";
+		return '<script type="text/javascript">'.$code.'</script>';
+	}
+
+	static private function javascriptAutocomplete() {
+		$code = "
+		$(document).ready(function(){
+			$('#Inputfield_seo_title, #Inputfield_seo_description, .seo_autocomplete').autocomplete({
+				minLength: 2,
+				source: function(request, response) {
+					var suggestions = $.ajax({url:'https://suggestqueries.google.com/complete/search',dataType:'jsonp',data:{q:request.term,cp:1,gs_id:6,xhr:'t',client:'youtube'}}).done(function(data){
+						console.log(data[1]);
+						response($.map(data[1], function(item) {
+							return {
+								label: item[0], 
+								value: item[0]
+							}
+						}));
+					});
+				}
+			}).keydown(function(event) {
+				if(event.keyCode == 13) {
+					// prevents enter from submitting the form
+					event.preventDefault();
+					return false;
+				}
+			}); 
+
+		});
+		";
+		return '<script type="text/javascript">'.$code.'</script>';
+	}
+
+	private function javascriptGooglePreview() {
+		$configData = \ProcessWire\wire('modules')->getModuleConfigData($this);
+
+		$titleSmart = ($configData['useParents'] == true) ? array('seo_title') : $configData['titleSmart'];
+		$smartFieldFormat = function($fieldName) {
+			return "input[name={$fieldName}]";
+		};
+		$titleFieldsSelectors = implode(',',array_map($smartFieldFormat,$titleSmart));
+		$titleFieldsNames = "'" . implode('\',\'',$titleSmart) ."'";
+
+		$code = "
+		$(document).ready(function(){
+
+			$('{$titleFieldsSelectors},input[name=seo_title]').keyup(function(){
+				$.each([$titleFieldsNames],function(index, name) {
+					value = $('input[name='+ name +']').val();
+					if (value != '') {
+						$('.SEO_google_title').html(value);
+						return false;
+					} else if (index == ($(this).length - 1)) {
+						$('.SEO_google_title').html('".\ProcessWire\__('Title')."');
+					}
+				});
+			});
+
+			$('#Inputfield_seo_description').keyup(function(){
+				$('.SEO_google_description').html(((\$(this).val()) ? \$(this).val() : 'This is just a short description.'));
+			}); 
+
+			$('#Inputfield_seo_canonical').keyup(function(){
+				$('.SEO_google_link').html(((\$(this).val()) ? \$(this).val() : '".\ProcessWire\wire('pages')->get(\ProcessWire\wire('input')->get->id)->httpUrl."'));
+			}); 
+
+		});
+		";
+		return '<script type="text/javascript">'.$code.'</script>';
+	}
+
+
+
+
+
+
+	/**
+	 * Install and uninstall functions
+	 *
+	 */
+
+	public function ___install() {
+
+		$fields = \ProcessWire\wire('fields');
+
+		// Tab stuff
+
+		if(!$fields->get('seo_tab')) {
+			$field = new \ProcessWire\Field;
+			$field->type = $this->modules->get('FieldtypeFieldsetTabOpen');
+			$field->name = "seo_tab";
+			$field->label = $this->_('SEO');
+			$field->tags = 'seo';
+			$field->save();
+		}
+
+		if(!$fields->get('seo_tab_END')) {
+			$field = new \ProcessWire\Field;
+			$field->type = $this->modules->get('FieldtypeFieldsetClose');
+			$field->name = "seo_tab_END";
+			$field->label = $this->_('Close an open fieldset');
+			$field->tags = 'seo';
+			$field->save();
+		}
+
+
+		// title, keywords, description, image, canonical, robots, custom
+
+		if(!$fields->get('seo_title')) {
+			$field = new \ProcessWire\Field;
+			$field->type = $this->modules->get("FieldtypeText");
+			$field->name = "seo_title";
+			$field->label = $this->_("Title");
+			$field->description = $this->_("A good length for a title is 60 characters.");
+			$field->tags = 'seo';
+			$field->save();
+		}
+
+
+		if(!$fields->get('seo_keywords')) {
+			$field = new \ProcessWire\Field;
+			$field->type = $this->modules->get("FieldtypeText");
+			$field->name = "seo_keywords";
+			$field->label = $this->_("Keywords");
+			$field->description = "";
+			$field->tags = 'seo';
+			$field->save();
+		}
+
+
+		if(!$fields->get('seo_description')) {
+			$field = new \ProcessWire\Field;
+			$field->type = $this->modules->get("FieldtypeText");
+			$field->name = "seo_description";
+			$field->label = $this->_("Description");
+			$field->description = $this->_("A good length for a description is 160 characters.");
+			$field->tags = 'seo';
+			$field->save();
+		}
+
+
+		if(!$fields->get('seo_image')) {
+			$field = new \ProcessWire\Field;
+			$field->type = $this->modules->get("FieldtypeText");
+			$field->name = "seo_image";
+			$field->label = $this->_("Image");
+			$field->description = $this->_('Please enter the URL (including "http://...") to a preview image.');
+			$field->tags = 'seo';
+			$field->save();
+		}
+
+
+		if(!$fields->get('seo_canonical')) {
+			$field = new \ProcessWire\Field;
+			$field->type = $this->modules->get("FieldtypeText");
+			$field->name = "seo_canonical";
+			$field->label = $this->_("Canonical Link");
+			$field->notes = $this->_('The URL should include "http://...".');
+			$field->tags = 'seo';
+			$field->save();
+		}
+
+
+		if(!$fields->get('seo_custom')) {
+			$field = new \ProcessWire\Field;
+			$field->type = $this->modules->get("FieldtypeTextarea");
+			$field->name = "seo_custom";
+			$field->label = $this->_("Custom");
+			$field->description = $this->_("If you want to add other meta tags, you can do it here.");
+			$field->notes = $this->_('Please use this schema: name := content. One tag per line. Special characters are only allowed in the content part and get converted to HTML.');
+			$field->tags = 'seo';
+			$field->save();
+		}
+
+		if(!$fields->get('seo_robots')) {
+			$field = new \ProcessWire\Field;
+			$field->type = \ProcessWire\wire('modules')->get("FieldtypeText");
+			$field->name = "seo_robots";
+			$field->label = $this->_("Robots");
+			$field->description = $this->_("The robots settings will tell search engine which data they are allowed to include/index.");
+			$field->notes = $this->_('This overwrites the module\'s global setting for this page.');
+			$field->tags = 'seo';
+			$field->save();
+		}
+	}
+
+
+	public function ___uninstall() {
+		$fields = \ProcessWire\wire('fields');
+		$templates = \ProcessWire\wire('templates');
+
+		foreach(self::getDefaultFields() as $field) {
+			foreach($templates as $template) {
+				if(!$template->hasField($field)) continue;
+				$template->fields->remove($field);
+				$template->fields->save();
+			}
+			$fields->delete($fields->get($field));
+		}
+
+	}
+}

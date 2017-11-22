@@ -1,0 +1,2847 @@
+<?php
+
+/**
+ * ProcessWire Migrator
+ * by Adrian Jones
+ *
+ * Automatically migrate content from one PW installation to another. Also allows 3rd party modules to convert content from other sources.
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2011 by Ryan Cramer
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ *
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+ini_set('max_execution_time', 300); //300 seconds = 5 minutes
+
+class ProcessMigrator extends Process implements Module {
+
+    /**
+     * getModuleInfo is a module required by all modules to tell ProcessWire about them
+     *
+     * @return array
+     *
+     */
+    public static function getModuleInfo() {
+        return array(
+            'title' => 'Migrator',
+            'version' => 64,
+            'summary' => 'Automatically migrate content from one PW installation to another. Also allows 3rd party modules to convert content from other sources.',
+            'href' => 'https://processwire.com/talk/topic/4420-migrator/',
+            'singular' => true,
+            'autoload' => false,
+            'icon'     => 'exchange',
+            'nav' => array(
+                array(
+                    'url' => 'export/',
+                    'label' => 'Export',
+                    'icon' => 'arrow-right',
+                ),
+                array(
+                    'url' => 'import/',
+                    'label' => 'Import',
+                    'icon' => 'arrow-left'
+                ),
+                array(
+                    'url' => 'restore/',
+                    'label' => 'Restore',
+                    'icon' => 'reply'
+                )
+            )
+        );
+    }
+
+    /**
+     * Name used for the page created in the admin
+     *
+     */
+    const adminPageName = 'migrator';
+
+
+    protected $pageFiles = array();
+    protected $repeaterSubFields = array();
+    protected $templateFiles = array();
+    protected $migratedTemplateFileNames = array();
+    protected $selectedFields = array();
+    protected $selectedPages = array();
+
+    protected $zipFilename = '';
+    //protected $jsonFilename = '';
+    //protected $migratorFilesDir = '';
+    protected $newPage = '';
+    protected $newField = '';
+    protected $base_url = '';
+    protected $thumb_suffix = '';
+
+    /**
+     * Instance of Template, used for imported pages
+     *
+     */
+    protected $template = null;
+
+    /**
+     * Instance of Page, representing the parent Page for imported pages
+     *
+     */
+    protected $parent = null;
+
+    /**
+     * Initialize the module
+     *
+     */
+    public function init() {
+        parent::init();
+        ini_set('auto_detect_line_endings', true);
+        wire("config")->scripts->add("/wire/modules/Inputfield/InputfieldDatetime/jquery-ui-timepicker-addon.js");
+    }
+
+    /**
+     * Executed when root url for module is accessed
+     *
+     */
+    public function ___execute() {
+
+        $form = $this->buildForm1();
+        if($this->input->post->submit) {
+            if($this->processForm1($form) || $this->processExportForm2($form) || $this->processImportForm2($form)) $this->session->redirect('./'.$this->session->type.'/');
+        }
+        return $form->render();
+    }
+
+    /**
+     * Executed when ./export/ url for module is accessed
+     *
+     */
+    public function ___executeExport() {
+
+        $form = $this->buildExportForm2();
+        if($this->input->post->submit) {
+            return $this->processExportForm2($form);
+        } else {
+            //$form = $this->buildExportForm2();
+            return $form->render();
+        }
+    }
+
+
+    /**
+     * Executed when ./import/ url for module is accessed
+     *
+     */
+    public function ___executeImport() {
+
+        $form = $this->buildImportForm2();
+
+        if($this->input->post->submit) {
+            return $this->processImportForm2($form);
+        } else {
+            return $form->render();
+        }
+
+    }
+
+
+    /**
+     * Executed when ./restore/ url for module is accessed
+     *
+     */
+    public function ___executeRestore() {
+
+        $form = $this->buildRestoreForm2();
+
+        if($this->input->post->submit) {
+            return $this->processRestoreForm2($form);
+        } else {
+            return $form->render();
+        }
+
+    }
+
+
+
+
+    /**
+     * Build the "Step 1" form
+     *
+     */
+    protected function buildForm1() {
+
+        $form = $this->modules->get("InputfieldForm");
+        $form->method = 'post';
+        $form->description = "Step 1: Export, Import, or Restore";
+
+        $f = $this->modules->get("InputfieldSelect");
+        $f->name = 'type';
+        $f->label = 'Export, Import, or Restore';
+        $f->required = true;
+        $f->addOption('');
+        $f->addOption('export', 'Export');
+        $f->addOption('import', 'Import');
+        if(class_exists('WireDatabaseBackup')){ //not present in older version of PW - prior to Aug 19, 2014 (approx 2.4.13)
+            $f->addOption('restore', 'Restore');
+        }
+        if($this->session->type) $f->attr('value', $this->session->type);
+        $form->add($f);
+
+        $this->addSubmit($form, 'Continue to Step 2');
+
+        return $form;
+    }
+
+
+
+    /**
+     * Process the "Step 1" form and populate session variables with the results
+     *
+     */
+    protected function processForm1(InputfieldForm $form) {
+
+        $form->processInput($this->input->post);
+        if(count($form->getErrors())) return false;
+
+        //$this->session->type = (int) $form->get('type')->value;
+
+        $type = $form->get('type')->value;
+
+        if(!$type) {
+            $this->error("Missing required Export/Import/Restore action type");
+            return false;
+        }
+
+        $this->session->type = $type;
+        return true;
+    }
+
+
+
+
+    /**
+     * Build the "Export Step 2" form
+     *
+     */
+    protected function buildExportForm2() {
+
+        $form = $this->modules->get("InputfieldForm");
+        $form->method = 'post';
+        $form->description = "Step 2: Export Page Tree";
+
+        $f = $this->modules->get("InputfieldPageListSelect");
+        $f->name = 'treeParent';
+        $f->label = 'Parent Page';
+        $f->required = true;
+        $f->description = "The parent of the page tree you want to export.";
+        if($this->session->treeParent) $f->attr('value', $this->session->treeParent);
+        $form->add($f);
+
+        $f = $this->modules->get("InputfieldSelect");
+        $f->name = 'export_components';
+        $f->label = 'Components to export';
+        $f->required = true;
+        $f->addOption('everything', 'Everything, including all data pages');
+        $f->addOption('fields_templates_and_structural_pages', 'Fields, Templates and Structural Pages');
+        $f->addOption('fields_and_templates_only', 'Fields and Templates Only');
+        if($this->session->export_components) $f->attr('value', $this->session->export_components);
+        $form->add($f);
+
+        $f = $this->modules->get("InputfieldDatetime");
+        $f->label = "Changes since";
+        $f->datepicker = 3;
+        $f->attr("name+id", "changes_since");
+        $f->dateInputFormat = "Y-m-d";
+        $f->timeInputFormat = "H:i:s";
+        if($this->session->changes_since){
+            $f->attr('value', $this->session->changes_since);
+            $f->attr('data-ts', $this->session->changes_since);
+        }
+        $f->description = "You can use this to export all pages that have changed since this date/time.";
+        $f->collapsed = Inputfield::collapsedBlank;
+        $form->add($f);
+
+        $f = $this->modules->get("InputfieldSelect");
+        $f->name = 'save_or_copy';
+        $f->label = 'Output Format';
+        $f->description = "SAVE zip file to your computer OR display code so you can COPY and then paste into new site.\nNB Copy will not work for migrating full page content if there are included files/images. It also won't migrate required template files.";
+        $f->required = true;
+        $f->addOption('save', 'Save');
+        $f->addOption('copy', 'Copy');
+        if($this->session->save_or_copy) $f->attr('value', $this->session->save_or_copy);
+        $form->add($f);
+
+
+        $f = $this->modules->get("InputfieldAsmSelect");
+        $f->name = 'helper_files';
+        $f->label = 'Helper Files';
+        $f->description = "Determines which additional helper files (inc, css, js etc) will be included in the export. These will be in addition to the required template php files needed for the templates, which will automatically be included.";
+        $f->showIf = "save_or_copy=save";
+
+        foreach($iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($this->config->paths->templates, RecursiveDirectoryIterator::SKIP_DOTS), RecursiveIteratorIterator::SELF_FIRST) as $item){
+            if ($item->isDir()) {
+                //$f->addOption($iterator->getSubPathName(), $iterator->getSubPathName());
+            }
+            else {
+                $f->addOption($iterator->getSubPathName(), $iterator->getSubPathName());
+            }
+        }
+
+        $form->add($f);
+
+
+        $this->addSubmit($form, 'Export');
+
+        return $form;
+    }
+
+    /**
+     * Process the "Step 2" form and populate session variables with the results
+     *
+     */
+    protected function processExportForm2(InputfieldForm $form) {
+
+        $form->processInput($this->input->post);
+
+        $this->session->treeParent = (int) $form->get('treeParent')->value;
+        $this->session->export_components = $form->get('export_components')->value;
+        $this->session->changes_since = $form->get('changes_since')->value;
+        $this->session->save_or_copy = $form->get('save_or_copy')->value;
+        $this->session->helper_files = $form->get('helper_files')->value;
+
+        if(count($form->getErrors())){
+
+            if(!$form->get('treeParent')->value) $this->error("You did not select a parent page. This must be selected to define the content to export.");
+            if(!$form->get('export_components')->value) $this->error("You did not select the export components.");
+            if(!$form->get('save_or_copy')->value) $this->error("You did not choose an output format.");
+
+            //$this->session->redirect('./'.$this->session->type);
+            return $form->render();
+        }
+
+
+        //find all the relevant pages under the selected parent and then sort them by child level (count path segments) to make sure parents are added to the JSON before their children
+        if($this->session->changes_since != ''){
+            $items = $this->pages->get($this->session->treeParent)->find("modified>{$this->session->changes_since}, id!=2, id!=7, has_parent!=2, has_parent!=7, template!=admin, sort=id, include=all"); // exclude admin and trash in case the user chooses the 'Home' as the parent
+        }
+        else{
+            $items = $this->pages->get($this->session->treeParent)->find("id!=2, id!=7, has_parent!=2, has_parent!=7, template!=admin, sort=id, include=all"); // exclude admin and trash in case the user chooses the 'Home' as the parent
+        }
+        // create empty page array
+        $res = new PageArray();
+        foreach($items as $item) {
+            // temporarily add pathsegments property to items
+            $item->pathsegments = count(explode('/',$item->path));
+            $res->add($item);
+        }
+        //sort based on their level in the page hierarchy which ensures parents get created before their children
+        $items = $res->filter("sort=pathsegments");
+
+
+        $parent_item = $this->pages->get($this->session->treeParent);
+        $items->prepend($parent_item);
+
+        if($this->session->save_or_copy == 'copy'){
+            return '<p><textarea rows="10" style="width:95%">' . $this->pagesToJSON($items, $this->session->export_components) . '</textarea></p><p>Copy this text and import it into your new site using the paste option.</p><p><a href="../export/">Export more pages</a></p>';
+        }
+        else{
+            $this->session->jsonFilename = $this->page->filesManager()->path() . 'data.json';
+            //header('Content-disposition: attachment; filename='.$this->pages->get($this->session->treeParent)->name.'.json');
+            //header('Content-type: application/json');
+            //echo ($this->pagesToJSON($items, $this->session->export_components));
+            //exit;
+
+            //write json file to assets folder and add it to the zip download
+            file_put_contents($this->session->jsonFilename, $this->pagesToJSON($items, $this->session->export_components));
+            $allfiles = array($this->session->jsonFilename);
+            $this->create_zip($allfiles, $this->page->filesManager()->path().'files.zip', 'json');
+            unlink($this->session->jsonFilename);
+
+            //download the zip to the users
+            $zipFilename = $this->page->filesManager()->path().'files.zip';
+            if (file_exists($zipFilename)) {
+                header('Content-Description: File Transfer');
+                header('Content-Type: application/zip');
+                header('Content-Disposition: attachment; filename='.basename($zipFilename));
+                header('Expires: 0');
+                header('Cache-Control: must-revalidate');
+                header('Pragma: public');
+                header('Content-Length: ' . filesize($zipFilename));
+                ob_clean();
+                flush();
+                readfile($zipFilename);
+                unlink($zipFilename);
+                //exit;
+            }
+        }
+
+    }
+
+    /**
+     * Build the "Import Step 2" form to import the json file
+     *
+     */
+    protected function buildImportForm2() {
+
+        $form = $this->modules->get("InputfieldForm");
+        $form->method = 'post';
+        $form->description = "Step 2: Import";
+
+        if(class_exists('WireDatabaseBackup')){ //not present in older version of PW - prior to Aug 19, 2014 (approx 2.4.13)
+            $f = $this->modules->get("InputfieldCheckbox");
+            $f->name = 'create_backup';
+            $f->label = 'Backup existing database and templates directory';
+            $f->description = "Determines whether to backup the existing database and the templates and assets/files directories before importing the new content. Highly Recommended!";
+            if($this->session->create_backup) $f->attr('value', $this->session->create_backup);
+            $f->attr('checked', $this->session->create_backup == '1' ? 'checked' : '' );
+            $form->add($f);
+        }
+
+        $f = $this->modules->get("InputfieldPageListSelect");
+        $f->name = 'import_to_parent';
+        $f->label = 'Parent Page';
+        $f->description = "The parent that you want the imported pages added to.\r\nIMPORTANT NOTE:\r\nThis should be one level up from the parent that you exported, the only exception being if you exported \"Home\", in which case you should still choose \"Home\". \r\nThis is not required if you choose 'Fields and Templates Only' from the options below.";
+        if($this->session->import_to_parent) $f->attr('value', $this->session->import_to_parent);
+        $form->add($f);
+
+        $f = $this->modules->get("InputfieldSelect");
+        $f->name = 'import_components';
+        $f->label = 'Components to Import';
+        $f->required = true;
+        $f->addOption('everything', 'Everything, including all data pages');
+        //$f->addOption('fields_templates_and_structural_pages', 'Fields, Templates and Structural Pages');
+        $f->addOption('fields_and_templates_only', 'Fields and Templates Only');
+        if($this->session->import_components) $f->attr('value', $this->session->import_components);
+        $form->add($f);
+
+        $f = $this->modules->get("InputfieldSelect");
+        $f->name = 'import_type';
+        $f->label = 'Import Type';
+        $f->required = true;
+        $f->addOption('append', 'Append');
+        $f->addOption('overwrite', 'Overwrite');
+        $f->addOption('replace', 'Replace');
+        $f->description = "APPEND will not change settings of existing fields, nor the content of existing pages. It will append new fields to templates and new pages (and date) to the selected Parent Page.\nOVERWRITE will change field settings and edit the content of existing pages so they match the imported data.\nREPLACE will match the destination to the source exactly, by modifying page data, changing field type and field settings, and deleting unused fields from templates.";
+        if($this->session->import_type) $f->attr('value', $this->session->import_type);
+        $form->add($f);
+
+        $f = $this->modules->get("InputfieldCheckbox");
+        $f->name = 'user_details';
+        $f->label = 'Import User Details';
+        $f->description = "Determines whether to migrate the original createdUser and modifiedUser for each page.";
+        if($this->session->user_details) $f->attr('value', $this->session->user_details);
+        $f->attr('checked', $this->session->user_details == '1' ? 'checked' : '' );
+        $f->collapsed = Inputfield::collapsedBlank;
+        $form->add($f);
+
+        $f = $this->modules->get("InputfieldCheckbox");
+        $f->name = 'page_dates';
+        $f->label = 'Import Created / Modified Dates';
+        $f->description = "Determines whether to migrate the original created and modified dates for each page.";
+        if($this->session->page_dates) $f->attr('value', $this->session->page_dates);
+        $f->attr('checked', $this->session->page_dates == '1' ? 'checked' : '' );
+        $f->collapsed = Inputfield::collapsedBlank;
+        $form->add($f);
+
+        $f = $this->modules->get("InputfieldCheckbox");
+        $f->name = 'download_modules';
+        $f->label = 'Automatically Download and Install Missing Fieldtypes';
+        $f->description = "Determines whether to automatically download and install missing fieldtypes.";
+        $f->notes = "If you do not trust the source of the import data, then it is recommended to NOT check this and manually install any missing fieldtypes when warned.";
+        if($this->session->download_modules) $f->attr('value', $this->session->download_modules);
+        $f->attr('checked', $this->session->download_modules == '1' ? 'checked' : '' );
+        $form->add($f);
+
+        $fieldset = $this->modules->get("InputfieldFieldset");
+        $fieldset->attr('id', 'json_source_options');
+        $fieldset->label = "Data Source";
+        $fieldset->description = "Choose one of the following options as the source of the data.\r\nIf you are importing \"Everything, including all data pages\" and you have files/images in the pages, then you must choose the zip upload.\r\nNB: The structure of this JSON is critical, so it is important that it was created using the export feature of this module.";
+        $form->add($fieldset);
+
+        $f = $this->modules->get("InputfieldFile");
+        $f->name = 'zip_file';
+        $f->label = 'Zip File Upload';
+        $f->extensions = 'zip';
+        $f->maxFiles = 1;
+        $f->descriptionRows = 0;
+        $f->overwrite = true;
+        $f->collapsed = Inputfield::collapsedBlank;
+        $fieldset->add($f);
+
+        //look for plugin migrator modules and add an importer for each one
+        $migratorClasses = array();
+        foreach($this->wire('modules') as $module) {
+            $className = $module->className();
+            //Look for Migrator in the class name. Might need to make this more specific
+            if (strpos($className,'Migrator') === false || $className == 'Migrator') continue;
+            $module = $this->wire('modules')->get($className);
+            $info = $this->wire('modules')->getModuleInfo($module);
+            if(!in_array('ProcessMigrator', $info['requires'])) continue;
+
+            $f = $this->modules->get("InputfieldFile");
+            $f->name = 'thirdparty_file_'.$className;
+            $f->label = $info['title'];
+            $f->extensions = $info['filetype'];
+            $f->maxFiles = 1;
+            $f->descriptionRows = 0;
+            $f->overwrite = true;
+            $f->collapsed = Inputfield::collapsedBlank;
+            $fieldset->add($f);
+
+            $migratorClasses[] = $className;
+        }
+
+        // Little workaround because multidimensional field names aren't allowed
+        if(isset($migratorClasses)){
+            $f = $this->modules->get("InputfieldHidden");
+            $f->name = 'migrator_classes';
+            $f->value = json_encode($migratorClasses);
+            $fieldset->add($f);
+        }
+
+
+        $f = $this->modules->get("InputfieldTextarea");
+        $f->name = 'json_data';
+        $f->label = 'Paste in JSON Data';
+        $f->collapsed = Inputfield::collapsedBlank;
+        $fieldset->add($f);
+
+        $f = $this->modules->get("InputfieldSelect");
+        $f->name = 'json_package';
+        $f->label = 'Shared JSON packages';
+        //$packages = json_decode(file_get_contents('https://raw.github.com/adrianbj/ProcessWirePageLists/master/packages.json'));
+        $options  = array('http' => array('user_agent' => 'adrianbj'));
+        $context  = stream_context_create($options);
+        $packages = json_decode(file_get_contents('https://api.github.com/repos/adrianbj/ProcessWirePageLists/contents/', false, $context));
+        if(!is_array($packages)) {
+            $this->error("Github rate limit has been exceeded. Please try again shortly.");
+            $f->description = __("Github rate limit has been exceeded. Please try again shortly.");
+        }
+        else{
+            $f->addOption('');
+            foreach($packages as $package){
+                if(pathinfo($package->html_url, PATHINFO_EXTENSION) != "json") continue; //exclude readme, license etc. Only looking for JSON files
+                $package_name = pathinfo($package->html_url, PATHINFO_FILENAME);
+                $package_raw_url = str_replace('//','//raw.', str_replace('blob/','',$package->html_url));
+                $f->addOption($package_raw_url, $package_name);
+            }
+            if($this->session->json_package) $f->attr('value', $this->session->json_package);
+            $f->description = __("Select from one of the shared JSON packages.\r\nMore details about these packages are available at the ProcessWirePageLists Github page: [https://github.com/adrianbj/ProcessWirePageLists](https://github.com/adrianbj/ProcessWirePageLists)");
+        }
+        $f->collapsed = Inputfield::collapsedBlank;
+        $fieldset->add($f);
+
+        $f = $this->modules->get("InputfieldURL");
+        $f->name = 'json_url';
+        $f->label = 'URL to JSON file';
+        $f->description = "Enter a URL directly to a .json file, eg: [https://raw.github.com/adrianbj/ProcessWirePageLists/master/countries.json](https://raw.github.com/adrianbj/ProcessWirePageLists/master/countries.json)";
+        $f->collapsed = Inputfield::collapsedBlank;
+        $fieldset->add($f);
+
+
+        $f = $this->modules->get("InputfieldCheckbox");
+        $f->name = 'edit_imported_content';
+        $f->label = 'Edit Imported Content';
+        $f->description = "If checked you will get another step where you can choose exactly which pages and fields you want to import.";
+        $f->attr('checked', $this->session->edit_imported_content == '1' ? 'checked' : '' );
+        //$f->collapsed = Inputfield::collapsedBlank;
+        $f->collapsed = $f->attr('checked') ? Inputfield::collapsedNo : Inputfield::collapsedYes;
+        $form->add($f);
+
+
+        $this->addSubmit($form, 'Upload and Create Content');
+
+        return $form;
+    }
+
+
+
+    /**
+     * Build the "Restore Step 2" form to restore database backup
+     *
+     */
+    protected function buildRestoreForm2() {
+
+        $form = $this->modules->get("InputfieldForm");
+        $form->method = 'post';
+
+        $f = $this->modules->get("InputfieldSelect");
+        $f->name = 'restore_directory';
+        $f->label = 'Backup to Restore';
+        $f->required = true;
+
+        if(file_exists($this->config->paths->assets.'migratorbackups/') && !$this->is_dir_empty($this->config->paths->assets.'migratorbackups/')){
+
+            $form->description = "Step 2: Restore";
+
+            foreach($iterator = new RecursiveDirectoryIterator($this->config->paths->assets.'migratorbackups/', RecursiveDirectoryIterator::SKIP_DOTS) as $item){
+                if ($item->isDir()) {
+                    if(strpos($iterator->getSubPathName(),'_') !== false){
+                        //convert dir name to friendly date / time format for restore select dropdown
+                        $optionLabel = strstr($iterator->getSubPathName(), '_', true) . " " . str_replace("-", ":", str_replace("_", "", strstr($iterator->getSubPathName(), '_')));
+                    }
+                    else{
+                        $optionLabel = $iterator->getSubPathName(); // just for anyone who installed the module before the date format changed
+                    }
+                    $f->addOption($iterator->getSubPathName(), $optionLabel);
+                }
+            }
+            if($this->session->restore_directory) $f->attr('value', $this->session->restore_directory);
+            $form->add($f);
+
+            $this->addSubmit($form, 'Restore');
+        }
+        else{
+            $form->description = "Sorry, there are no backups to restore.";
+        }
+
+        return $form;
+
+    }
+
+
+
+    /**
+     * Build the "Import Step 3" form to determine what pages/fields get imported
+     *
+     */
+    protected function buildImportForm3($data) {
+
+        $form = $this->modules->get("InputfieldForm");
+        $form->method = 'post';
+        $form->description = "Step 3: Edit Content to be Imported";
+
+
+        $f = $this->modules->get("InputfieldAsmSelect");
+        $f->name = 'import_fields';
+        $f->label = 'Import Fields';
+        $f->required = true;
+
+        foreach($data->fields as $np){
+            $f->addOption($np->name, $np->name);
+            $f->attr('value', $np->name);
+        }
+
+        $f->description = "By default, all fields in the import are selected. Remove any fields that you don't want to import.";
+        $f->setAsmSelectOption('sortable', false);
+        $form->add($f);
+
+        if(isset($data->pages) && $this->session->import_components != 'fields_and_templates_only'){
+            $f = $this->modules->get("InputfieldAsmSelect");
+            $f->name = 'import_pages';
+            $f->label = 'Import Pages';
+            $f->required = true;
+
+            foreach($data->pages as $np){
+                $f->addOption($np->name, $np->name);
+                $f->attr('value', $np->name);
+            }
+
+            $f->description = "By default, all pages in the import are selected. Remove any pages that you don't want to import.";
+            $f->setAsmSelectOption('sortable', false);
+            $form->add($f);
+        }
+
+        //these hidden fields are a bit of a hack to prevent field required notices when processing this form because we are using the same code to process Input Form2 and Form3 and session variables are being lost somewhere
+        $f = $this->modules->get("InputfieldHidden");
+        $f->name = 'create_backup';
+        if($this->session->create_backup) $f->attr('value', $this->session->create_backup);
+        $form->add($f);
+
+        $f = $this->modules->get("InputfieldHidden");
+        $f->name = 'import_to_parent';
+        if($this->session->import_to_parent) $f->attr('value', $this->session->import_to_parent);
+        $form->add($f);
+
+        $f = $this->modules->get("InputfieldHidden");
+        $f->name = 'import_type';
+        if($this->session->import_type) $f->attr('value', $this->session->import_type);
+        $form->add($f);
+
+        $f = $this->modules->get("InputfieldHidden");
+        $f->name = 'import_components';
+        if($this->session->import_components) $f->attr('value', $this->session->import_components);
+        $form->add($f);
+
+        $f = $this->modules->get("InputfieldHidden");
+        $f->name = 'download_modules';
+        if($this->session->download_modules) $f->attr('value', $this->session->download_modules);
+        $form->add($f);
+
+        $f = $this->modules->get("InputfieldHidden");
+        $f->name = 'jsonFilename';
+        if($this->session->jsonFilename) $f->attr('value', $this->session->jsonFilename);
+        $form->add($f);
+
+        $this->addSubmit($form, 'Create Content');
+
+        return $form;
+    }
+
+
+    /**
+     * Process the "Import Step 2" form and upload the zip/json file
+     *
+     */
+    protected function processImportForm2(InputfieldForm $form) {
+
+        $this->recursiveDelete($this->page->filesManager()->path(), false); //cleanup anything left in the Migrator assets/files directory from previous failed import
+
+        $form->processInput($this->input->post);
+        //$errors = $form->getErrors(true); used to delete automatic field errors since we want to provide custom ones
+        if(count($form->getErrors())) return false;
+
+        if($this->input->post){
+            //because these two are coming from InputForm3?, they have to use $this->input->post and not $form->get()->value
+            $this->session->import_fields = isset($this->input->post->import_fields) ? $this->input->post->import_fields : '';
+            $this->session->import_pages = isset($this->input->post->import_pages) ? $this->input->post->import_pages : '';
+
+            $this->session->create_backup = $form->get('create_backup')->value;
+            $this->session->import_to_parent = (int) $form->get('import_to_parent')->value;
+            $this->session->import_to_parent = (int) $this->input->post->import_to_parent;
+            $this->session->import_components = $form->get('import_components')->value;
+            $this->session->import_components = $this->input->post->import_components;
+            $this->session->user_details = $form->get('user_details')->value;
+            $this->session->page_dates = $form->get('page_dates')->value;
+            $this->session->download_modules = $form->get('download_modules')->value;
+            $this->session->import_type = $form->get('import_type')->value;
+            if(isset($form->get('jsonFilename')->value)) $this->session->jsonFilename = $form->get('jsonFilename')->value;
+            $this->session->edit_imported_content = isset($form->get('import_fields')->value) ? $this->session->edit_imported_content : $form->get('edit_imported_content')->value;
+        }
+
+        if($this->session->create_backup == 1){
+            $backupDir = $this->config->paths->assets.'migratorbackups/'.date('Y-m-d_H-i-s');
+
+            if (!file_exists($this->config->paths->assets.'migratorbackups/')) mkdir($this->config->paths->assets.'migratorbackups/');
+            if (!file_exists($backupDir)) mkdir($backupDir);
+
+            $backup = new WireDatabaseBackup($backupDir.'/');
+            $backup->setDatabase($this->database);
+            $backup->setDatabaseConfig($this->config);
+
+            $file = $backup->backup(array('filename' => 'migratorbackup.sql'));
+            //copy templates and files directory to backup location
+            wireCopy($this->config->paths->templates, $backupDir . '/templates/', true);
+            wireCopy($this->config->paths->files, $backupDir . '/files/', true);
+
+            // remove uploaded file from the backup directory by emptying the files page folder connected with Migrator
+            // don't want this restored or we get an error when importing after restore because file already exists
+            $migratorClassFilesDir = str_replace($this->config->paths->assets, '', $this->page->filesManager()->path());
+            $this->recursiveDelete($backupDir . '/' . $migratorClassFilesDir, false);
+        }
+
+        if(!$this->session->import_to_parent && $this->session->import_components != 'fields_and_templates_only') {
+            if($this->session->migratorFilesDir && file_exists($this->session->migratorFilesDir)) $this->recursiveDelete($this->session->migratorFilesDir);
+            $this->error("Missing required parent page. This must be selected if you want to import the pages in addition to field and template creation.");
+            //$this->session->redirect('./'.$this->session->type);
+            return $form->render();
+        }
+
+        //for submission of form either without Edit Imported Content, or the first submission to get the fields/pages from the JSON file
+        if(!isset($form->get('import_fields')->value) || $form->get('import_fields')->value==''){
+
+            /*$this->session->zipFile = $form->get('zip_file')->value;
+            if($form->get('json_data')->value != '') $this->session->jsonData = $form->get('json_data')->value;
+
+            $this->session->jsonURL = $form->get('json_url')->value;*/
+
+            /*$zipFile = $form->get('zip_file')->value != '' ? $form->get('zip_file')->value : '';
+
+            $this->session->jsonPackage = $form->get('json_package')->value != '' ? $form->get('json_package')->value : $this->session->jsonPackage;
+            $this->session->jsonData = $form->get('json_data')->value != '' ? $form->get('json_data')->value : $this->session->jsonData;
+            $this->session->jsonURL = $form->get('json_url')->value != '' ? $form->get('json_url')->value : $this->session->jsonURL;*/
+
+            if($form->get('json_package')->value != ''){
+                $this->session->jsonPackage = $form->get('json_package')->value;
+                $this->session->jsonData = '';
+                $this->session->jsonURL = '';
+                $this->session->zipFilename = '';
+            }
+
+            if($form->get('json_data')->value != ''){
+                $this->session->jsonPackage = '';
+                $this->session->jsonData = $form->get('json_data')->value;
+                $this->session->jsonURL = '';
+                $this->session->zipFilename = '';
+            }
+
+            if($form->get('json_url')->value != ''){
+                $this->session->jsonPackage = '';
+                $this->session->jsonData = '';
+                $this->session->jsonURL = $form->get('json_url')->value;
+                $this->session->zipFilename = '';
+            }
+
+            if($form->get('zip_file')->value != ''){
+                $this->session->jsonPackage = '';
+                $this->session->jsonData = '';
+                $this->session->jsonURL = '';
+                $zipFile = $form->get('zip_file')->value;
+                //if(is_array($zipFile) && count($zipFile)>0){
+                $this->session->zipFile = $zipFile->first();
+                $this->session->zipFile->rename("data.zip");
+                $this->session->zipFilename = $this->session->zipFile->filename;
+                //}
+            }
+
+            $migratorClasses = json_decode($form->get('migrator_classes')->value);
+            if(is_array($migratorClasses)){
+                foreach($migratorClasses as $migratorClass) {
+                    if($form->get('thirdparty_file_'.$migratorClass)->value == '') continue;
+                    $this->session->jsonPackage = '';
+                    $this->session->jsonData = '';
+                    $this->session->jsonURL = '';
+                    $thirdpartyFile = $form->get('thirdparty_file_'.$migratorClass)->value;
+                    $this->session->thirdpartyFile = $thirdpartyFile->first();
+                    $this->session->thirdpartyModule = $migratorClass;
+
+                    $this->session->thirdpartyFile->rename("thirdpartydata.txt");
+                    $this->session->thirdpartyFilename = $this->session->thirdpartyFile->filename;
+                }
+            }
+
+
+            /*if(is_array($zipFile) && count($zipFile)>0) {
+                $this->session->zipFile = $zipFile->first();
+                $this->session->zipFile->rename("data.zip");
+                $this->session->zipFilename = $this->session->zipFile->filename;*/
+            $this->session->migratorFilesDir = $this->page->filesManager()->path() . 'migratorfiles';
+            $this->session->jsonFilename = $this->session->migratorFilesDir . '/data.json';
+
+            if($this->session->zipFilename!=''){
+                // extract uploaded zip to destination PW installation
+                $zip = new ZipArchive;
+                if($zip->open($this->session->zipFilename) === TRUE) {
+                    $zip->extractTo($this->session->migratorFilesDir);
+                    $zip->close();
+                    unlink($this->session->zipFilename);
+
+                    // set paths for moving files into the destination PW site's templates folder
+                    $srcDir = $this->session->migratorFilesDir . '/templates/';
+                    $destDir = $this->config->paths->templates.'/';
+
+                    // check write permissions on templates directory and fail with friendly error
+                    if(file_exists($srcDir) && !is_writable($destDir)){
+                        if($this->session->migratorFilesDir && file_exists($this->session->migratorFilesDir)) $this->recursiveDelete($this->session->migratorFilesDir);
+                        $this->error("There are template PHP files in your import, but the templates directory is not writeable. Please change permissions and try again.");
+                        //$this->session->redirect('./'.$this->session->type);
+                        $form->get('zip_file')->value = '';
+                        return $form->render();
+                    }
+
+                    //move template and other helper files into the templates directory
+                    if (file_exists($srcDir) && is_dir($srcDir) && $handle = opendir($srcDir)) {
+                        foreach($iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($srcDir, RecursiveDirectoryIterator::SKIP_DOTS), RecursiveIteratorIterator::SELF_FIRST) as $item){
+                            $this->migratedTemplateFileNames[] = str_replace($this->session->migratorFilesDir, '', $item);
+                            if ($item->isDir()) {
+                                if(!file_exists($destDir . $iterator->getSubPathName())){
+                                    mkdir($destDir . str_replace("//", "/", $iterator->getSubPathName()));
+                                }
+                            }
+                            else {
+                                copy($item, $destDir . str_replace("//", "/", $iterator->getSubPathName()));
+                            }
+                        }
+                    }
+                }
+            }
+            elseif(file_exists($this->session->migratorFilesDir)){
+                //no need to do anything since the directory of files already exists
+                //this would be the case when "Edit Imported Content" was selected.
+            }
+            else{
+                if($this->session->jsonData != '') {
+                    $json = $this->session->jsonData;
+                }
+                elseif($this->session->jsonPackage != '') {
+                    $json = file_get_contents($this->session->jsonPackage);
+                }
+                elseif($this->session->jsonURL != '') {
+                    $json = file_get_contents($this->session->jsonURL);
+                }
+                elseif($this->session->thirdpartyFilename!=''){
+                    // loading the third party data
+                    if (!file_exists($this->session->migratorFilesDir)) mkdir($this->session->migratorFilesDir);
+
+                    // Load Thirdparty Migrator
+                    $migrator = $this->modules->get($this->session->thirdpartyModule);
+
+                    //convertToJson function must be defined in the 3rd party module
+                    $json = $migrator->convertToJson($this->page->filesManager()->path() . '/thirdpartydata.txt');
+                    //just for testing/debugging json
+                    file_put_contents($this->page->filesManager()->path() . '/thirdpartydata.json', $json);
+                    unlink($this->page->filesManager()->path() . '/thirdpartydata.txt');
+                }
+                else{
+                    $this->error("Missing required ZIP or JSON Source");
+                    if($this->session->migratorFilesDir && file_exists($this->session->migratorFilesDir)) $this->recursiveDelete($this->session->migratorFilesDir);
+                    return $form->render();
+                }
+
+                if (!file_exists($this->session->migratorFilesDir)) mkdir($this->session->migratorFilesDir);
+                file_put_contents($this->session->jsonFilename, $json);
+                //exit;
+
+            }
+
+            //populate $fp with data from json file written to the server from pasted, or externally linked JSON file
+            $fp = file_get_contents($this->session->jsonFilename);
+
+
+            //if no data source provided, return an error. This check probably isn't necessary because of the ones above.
+            if(empty($fp)){
+                $this->error("Missing required ZIP or JSON Source");
+                if($this->session->migratorFilesDir && file_exists($this->session->migratorFilesDir)) $this->recursiveDelete($this->session->migratorFilesDir);
+                //$this->session->redirect('./'.$this->session->type);
+                return $form->render();
+            }
+
+            //populate $data with json string of all the content to be created
+            $fp = preg_replace('/\\\u([0-9a-z]{4})/', '&#x$1;', $fp);
+            $data = json_decode($fp);
+        }
+
+
+
+        //if selected, redirect to form to allow user to determine which pages/fields get imported
+        if($this->input->post->edit_imported_content=='1'){
+            $form = $this->buildImportForm3($data);
+            return $form->render();
+        }
+
+        //now that we have been through both ImportForm 2 and 3, it's ok to delete the json.data file from the migratorfiles temp directory.
+        //unlink($this->session->jsonFilename);
+
+
+        //check fieldtypes of the fields to be installed against the available ones in the destination install before attempting to save a field with a type that isn't available.
+        //attempt to install it if it is available (core and those site modules that are downloaded but not installed)
+        //TODO: should maybe switch to $this->modules->getInstall() - https://processwire.com/talk/topic/6449-install-module-from-api-when-module-is-not-listed/?p=63127
+        //Maybe also use "isInstalled" to check first, although everything does seem to be working as is: https://processwire.com/talk/topic/6450-how-do-we-check-if-a-module-is-activated/?p=63126
+        $missing_fieldtypes = array();
+
+        foreach($data->fields as $np){
+
+            //automatically install language support if needed
+            if(strpos($np->type, 'Language') !== false){
+                $this->modules->get("LanguageSupport");
+                if(strpos($np->type, 'Fieldtype') !== false) $this->modules->get("LanguageSupportFields");
+
+                if(count($this->languages) < 2) $missing_fieldtypes[] = 'Missing additional language pack(s)';
+            }
+
+            if(!in_array($np->type, $this->fieldtypes->getArray()) && !$this->modules->get($np->type)){
+                if(!$this->downloadConfirm($np->type)) { // attempt to download and install. If not possible, then add to missing list error
+                    $missing_fieldtypes[] = $np->type;
+                }
+            }
+
+        }
+
+        foreach($data->pages as $np){
+            if(isset($np->name_default_name)) $this->modules->get("LanguageSupportPageNames");
+        }
+
+        //input field classes - eg. CKEditor
+        foreach($data->fields as $np){
+            if(isset($np->data->inputfieldClass) && !$this->modules->isInstalled($np->data->inputfieldClass) && !$this->modules->getInstall($np->data->inputfieldClass)){
+                if(!$this->downloadConfirm($np->data->inputfieldClass)) { // attempt to download and install. If not possible, then add to missing list error
+                    $missing_fieldtypes[] = $np->data->inputfieldClass;
+                }
+            }
+        }
+
+        //input fields - eg. InputfieldSelectMultipleTransfer
+        foreach($data->fields as $np){
+            if(isset($np->data->inputfield) && !$this->modules->isInstalled($np->data->inputfield) && !$this->modules->getInstall($np->data->inputfield)){
+                if(!$this->downloadConfirm($np->data->inputfield)) { // attempt to download and install. If not possible, then add to missing list error
+                    $missing_fieldtypes[] = $np->data->inputfield;
+                }
+            }
+        }
+
+        if(count($missing_fieldtypes)>0){
+            if($this->session->migratorFilesDir && file_exists($this->session->migratorFilesDir)) $this->recursiveDelete($this->session->migratorFilesDir);
+            $this->error($this->fancy_implode(array_unique($missing_fieldtypes)). " required by the imported content, but not available in this Processwire setup. Please install and then import again.");
+            if(isset($zipFile)) $form->get('zip_file')->value = '';
+            return $form->render();
+        }
+
+
+        //cleanup to make repeaters work when using REPLACE action - PW doesn't seem to do this properly itself.
+        if($this->session->import_type == "replace"){
+            foreach($data->fields as $np){
+                if(isset($np->data)) {
+                    foreach($np->data as $np_field_name => $np_field_value){
+                        if($this->modules->get($np->type) == "FieldtypeRepeater"){
+                            if($this->fields->get("{$np->name}")) $current_field_id = $this->fields->get("{$np->name}")->id;
+                            if(isset($current_field_id)){
+                                $forfieldid = "for-field-$current_field_id";
+                                $sql = "DELETE FROM pages WHERE name=:forfieldid";
+                                $query = $this->wire('database')->prepare($sql);
+                                $query->bindValue(':forfieldid', $forfieldid);
+                                $query->execute();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        //Settings - so far only for 3rd party migrators
+        if(isset($data->settings)){
+            foreach($data->settings as $setting){
+                $this->base_url = $setting->base_url;
+                $this->thumb_suffix = $setting->thumb_suffix;
+            }
+        }
+
+
+        //Templates - first iteration to create templates
+        foreach($data->templates as $np){
+
+            if(!$this->fieldgroups->{$np->template}) {
+                $fg = new Fieldgroup();
+                $fg->name = $np->template;
+                $fg->add("title");
+                $fg->save();
+            }
+            else{
+                $fg = $this->fieldgroups->{$np->template};
+            }
+
+            if(!$this->templates->{$np->template}) {
+                $template = new Template();
+                $template->name = $np->template;
+                $template->fieldgroup = $fg;
+                $template->save();
+            }
+            else{
+                $template = $this->templates->{$np->template};
+            }
+
+        }
+
+
+        //Templates - second iteration to save settings.
+        // had to separate because it isn't possible to populate childTemplates / parentTemplates arrays if the template to be set isn't created yet
+        foreach($data->templates as $np){
+
+            $template = $this->templates->{$np->template};
+            $fg = $this->fieldgroups->{$np->template};
+
+            if(isset($np->data)) {
+                foreach($np->data as $np_field_name => $np_field_value){
+                    //Roles (Access Tab)
+                    if(stripos($np_field_name,'Roles') !== false && is_array($np_field_value)) {
+                        $id = array_map(array($this, 'getRoleIDFromName'), $np_field_value);
+                        if($id) $template->$np_field_name = $id;
+                    }
+                    //Child and Parent template settings (Family Tab)
+                    elseif(is_array($np_field_value)) {
+                        $id = array_map(array($this, 'getTemplateIDFromName'), $np_field_value);
+                        $template->$np_field_name = $id;
+                    }
+                    else{
+                        $template->$np_field_name = $np_field_value;
+                    }
+                }
+            }
+
+            $template->fieldgroup = $fg;
+            $template->save();
+
+        }
+
+
+        //Fields
+        $pagefield_parent_ids = array();
+        $pagetablefield_parent_ids = array();
+        $fieldsInTemplates = array();
+        $repeaterFieldsInTemplates = array();
+        $deletedFields = array();
+        foreach($data->fields as $np){
+
+            //if field is not in the list of selected import fields, then skip
+            if(is_array($this->session->import_fields) && !in_array($np->name, $this->session->import_fields)) continue;
+
+            //if replace mode then we need to delete the field first in case there is an incompatible field type change
+            if(!in_array($np->name, $deletedFields) && $this->fields->get($np->name) && $this->fields->get($np->name)->flags <= 1 && ($this->session->import_type == "replace")) {
+                //first remove the field from all templates before deleting it.
+                foreach($this->templates as $t){
+                    foreach($t->fieldgroup as $field){
+                        if($field->name == $np->name){
+                            $t->fieldgroup->remove($field);
+                            $t->fieldgroup->save();
+                        }
+                    }
+                }
+                try{
+                    //delete the field
+                    $f = $this->fields->get($np->name);
+                    $this->fields->delete($f);
+                    $deletedFields[] = $np->name; // populate array to check against so that we don't delete again a field that was already deleted
+                }
+                catch(Exception $e) {
+                    // likely a repeater that can't be deleted because it is used by pages
+                }
+            }
+
+            //if field doesn't exist, then create it now
+            if(!$this->fields->get($np->name)){
+                $field = new Field();
+                $field->type = $this->modules->get($np->type);
+                $field->name = $np->name;
+                try{
+                    $field->save();
+                }
+                catch(Exception $e) {
+                    // likely the DB table already exists because a restore didn't remove the tables
+                }
+                $this->newField = true;
+            }
+            else{
+                $field = $this->fields->get($np->name);
+            }
+
+            //this is necessary to make sure additional fields are added to DB for certain field types.
+            //was getting "Unknown column 'field_images.modified'" errors if importing to new PW install before any pages with image fields had been edited and so the modified and created fields weren't being added to the database.
+            $ft = $this->modules->get($np->type);
+            $ft->getDatabaseSchema($field);
+
+
+            $template = $this->templates->{$np->template};
+
+            if($template) { //standard fields in template, not repeater fields
+                $fieldsInTemplates[$template->name][] = $field->name; //populate for later checking of fields to be deleted
+            }
+
+            if($this->newField || $this->session->import_type == "replace"){
+
+                $field->label = $np->label;
+                $field->description = $np->description;
+                $field->flags = $np->flags;
+                $field->save();
+
+                try{
+                    $field->type = $np->type;
+                    $field->save();
+                }
+                catch(Exception $e) {
+                    $this->error("Could not change the field type of {$np->name} because it is not a deletable field and the new and old type are incompatible. This may cause problems with the imported content.");
+                }
+
+                if(isset($np->data)) {
+                    foreach($np->data as $np_field_name => $np_field_value){
+
+                        //manually add tags field to DB table because it's not happening automatically, even though it should be using getDatabaseSchema above:
+                        //https://github.com/ryancramerdesign/ProcessWire/blob/03387f8283d518e9cc405eff8f05cd6a5bf77c4c/wire/modules/Fieldtype/FieldtypeFile.module#L311
+                        if($np_field_name == 'useTags' && $np_field_value==1){
+                            try{
+                                $sql = "ALTER TABLE `field_".$field->name."` ADD `tags` TEXT NOT NULL";
+                                $query = $this->wire('database')->prepare($sql);
+                                $query->execute();
+                            }
+                            catch(Exception $e) {
+                                // intentionally blank - in case tags field already exists there would be an error
+                            }
+                        }
+
+
+                        if(strpos($this->modules->get($np->type), 'Language') !== false) {
+                            if(strpos($np_field_name, 'label_') !== false){
+                                $language = str_replace('_','',strstr($np_field_name, '_'));
+                                $language_id = $this->languages->get($language)->id;
+                                $np_field_name = 'label'.$language_id;
+                            }
+                        }
+
+                        if($this->modules->get($np->type) == "FieldtypeRepeater"){
+
+                            $this->modules->get("FieldtypeRepeater"); // install repeater module if it's not already installed. Probably not needed here as we do this above already.
+
+                            $repeater_fieldgroup = "repeater_{$np->name}";
+
+                            if(!$this->fieldgroups->$repeater_fieldgroup) {
+                                $repeater_fg = new Fieldgroup();
+                                $repeater_fg->name = $repeater_fieldgroup;
+                            }
+                            else{
+                                $repeater_fg = $this->fieldgroups->$repeater_fieldgroup;
+                            }
+
+                            if(is_array($np_field_value)) {
+                                foreach($np_field_value as $rf){
+                                    $repeater_fg->append($rf); // populates fieldgroups_fields with IDs of repeater subfields
+                                    $repeaterFieldsInTemplates[$np->name][] = $rf; //populate repeater subfields for later checking of fields to be deleted
+                                }
+                            }
+                            $repeater_fg->save();
+
+                            if(!$this->templates->$repeater_fieldgroup) {
+                                $repeater_template = new Template();
+                                $repeater_template->name = $repeater_fieldgroup;
+                                $repeater_template->flags = 8;
+                                $repeater_template->noChildren = 1;
+                                $repeater_template->noParents = 1;
+                                $repeater_template->noGlobal = 1;
+                                $repeater_template->slashUrls = 1;
+                                $repeater_template->fieldgroup = $repeater_fg;
+                                $repeater_template->save();
+                            }
+                            else{
+                                $repeater_template = $this->templates->$repeater_fieldgroup;
+                            }
+
+                            // need to override these values in the JSON data because they come from the source PW install and aren't relevant here when importing
+                            if($np_field_name == "template_id") $np_field_value = $repeater_template->id;
+                            if($np_field_name == "parent_id") {
+                                $repeater_page = "for-field-{$field->id}";
+                                $np_field_value = $this->pages->get("name={$repeater_page}, include=all, has_parent!=7")->id;
+                            }
+                        }
+
+                        if($this->modules->get($np->type) == "FieldtypePage"){
+                            // need to override these values in the JSON data because they come from the source PW install and aren't relevant here when importing
+                            if($np_field_name == "template_id") $np_field_value = $this->templates->get("name=$np_field_value")->id;
+                            // populate array with parent_id names for page fields so that they can be added once the parent page has been created below in the pages section
+                            if($np_field_name == "parent_id") $pagefield_parent_ids[$np->name] = $np_field_value;
+                        }
+
+                        if($this->modules->get($np->type) == "FieldtypePageTable"){
+                            // get the new page id for the parent of the PageTable items
+                            if($np_field_name == "parent_id"){
+                                $np_field_value = $this->pages->get("name=$np_field_value")->id;
+                                $pagetablefield_parent_ids[$np->name] = $np_field_value;
+                            }
+                        }
+
+                        //not sure about the new addition (2014-03-15) checking for instance of FieldtypeFile ??
+                        //was an attempt to fix broken image field creation, but I don't think it is related, although might still be a good check to have
+                        if(is_array($np_field_value) && !$this->modules->get($np->type) instanceof FieldtypeFile) { // think this is limited to repeaters and nothing else - need to check
+                            $id = array_map(array($this, 'getFieldIDFromName'), $np_field_value);
+                            $field->$np_field_name = $id; // populates fields > data > repeaterFields with IDs of repeater subfields
+                        }
+                        else{
+                            $field->$np_field_name = $np_field_value;
+                        }
+
+                    }
+                }
+
+                //update db table with required Table fields
+                if($field->type=="FieldtypeTable") $field->type->_checkSchema($field, true);
+
+                try{
+                    $field->save();
+                }
+                catch(Exception $e) {
+                    // more catching of unsuccessful attempts to change field type
+                }
+
+                if($template) $template->fieldgroup->append($field); // add new field to template. If $template checks are for repeater subfields - don't want to add these to a standard template
+            }
+            else{
+                if($template) $template->fieldgroup->append($this->fields->{$np->name}); // add existing field to template - NB: this does not change any of the attributes of a field if it already exists - this could be problematic for the import
+            }
+
+            if($template) $template->fieldgroup->save();
+
+            //$field->save();
+
+        }
+
+
+
+        //Remove fields no longer in templates when using the REPLACE import action
+        if($this->session->import_type == "replace"){
+
+            $templateArray = array();
+            $repeaterFieldsArray = array();
+            foreach($fieldsInTemplates as $check_temp => $fields){
+                $templateArray[] = $check_temp;
+            }
+
+            //Normal fields
+            foreach($templateArray as $template){
+                if($template=='') continue; //blank template means a repeater field due to the way the JSON is contructed
+                foreach($this->templates->get("$template")->fields as $des_field){
+                    if(!in_array($des_field, $fieldsInTemplates[$template]) && $des_field != 'title'){
+                        $this->templates->get("$template")->fieldgroup->remove($this->fields->get("$des_field"));
+                        $this->templates->get("$template")->fieldgroup->save();
+                    }
+                }
+            }
+
+            //Repeater fields
+            foreach($fieldsInTemplates as $check_temp => $fields){
+                foreach($fields as $field){
+                    if($this->fields->get("$field")->type == "FieldtypeRepeater") $repeaterFieldsArray[] = $field;
+                }
+            }
+
+            foreach($repeaterFieldsArray as $repeaterField){
+                $repTemplate = $this->templates->get("repeater_$repeaterField");
+                foreach($repTemplate->fieldgroup as $rf){
+                    if(!in_array($rf->name, $repeaterFieldsInTemplates[$repeaterField])){
+                        $repTemplate->fieldgroup->remove($this->fields->get("$rf->name"));
+                        $repTemplate->fieldgroup->save();
+                    }
+                }
+            }
+        }
+
+
+        //Templates - third iteration after fields have been created to set field context settings
+        foreach($data->templates as $np){
+            $template = $this->templates->{$np->template};
+
+            if(isset($np->field_settings)) {
+                foreach($np->field_settings as $np_field_name => $np_field_value){
+                    $f = $template->fieldgroup->getField($np_field_name, true);//get the field in context of this template
+                    foreach($np_field_value as $field_setting => $field_setting_value){
+                        $f->$field_setting = $field_setting_value;//value of the field
+                    }
+                    $this->fields->saveFieldgroupContext($f, $template->fieldgroup);//save new setting in context
+                }
+            }
+        }
+
+
+        //Pages
+        $i=0;
+        $top_parent_page = '';
+
+        if($this->session->import_components == 'everything'){
+
+            if(isset($data->pages)){
+                foreach($data->pages as $np){
+                    //error_log('I:'.$i.':PN:'.$np->name.':PT:'.$np->page_template);
+                    //if page is not in the list of selected import pages, then skip
+                    if(is_array($this->session->import_pages) && !in_array($np->name, $this->session->import_pages)) continue;
+
+                    $import_to_parent = $this->pages->get($this->session->import_to_parent);
+                    $parent_path = str_replace("//", "/", $import_to_parent->path.$np->parent_name);
+                    $parent = $this->pages->get($parent_path);
+                    $parent_id = $parent->id;
+                    if($np->parent_name=='' && ($np->name=='home' || $np->name=='')){
+                        $parent_id = 0;
+                    }
+                    if($parent_id == '') $parent_id = 1;
+                    if($np->name=='') $np->name='home'; //sometimes the home page has no name in the exported json - multi-language only I think, although this should now be taken care of during export
+
+                    //if import_type is REPLACE then we need to delete all pages under the parent (hence the $i==0 check) so we end up with an exact copy of the imported site
+                    //if($this->session->import_type == 'replace' && $i==0){
+                    //removed $i==0 because not all sub trees were being deleted - hopefully no side effects
+                    if($this->session->import_type == 'replace'){
+                        $rps = $this->pages->get("name={$np->name}, template={$np->page_template}, parent=$parent_id, include=all, has_parent!=7")->find("include=all, id!=2, id!=7, has_parent!=2, has_parent!=7, template!=admin");
+                        //$rp = $this->pages->get("name={$np->name}, template={$np->page_template}, parent=$parent_id, include=all, has_parent!=7");
+
+                        foreach($rps as $rp){
+                            if($rp->deleteable()) {
+                                $this->pages->delete($rp, true);
+                            }
+                        }
+
+                    }
+
+
+                    if($np->name=="home" || $np->name==""){ //this is for imports that include the home page. Apparently multi-language page names allow an empty home page name: https://processwire.com/talk/topic/4420-page-list-migrator/?p=65826
+                        $wp = $this->pages->get("/");
+                    }
+                    //elseif(!$this->pages->get("name={$np->name}, template={$np->page_template}, parent=$parent_id, include=all, has_parent!=7")->id){ //Check to see if a page with same name, template and parent already exists before creating it
+                    //changed in case there is a page that has the same name and parent, but the new version has a different template - hopefully no side effects
+                    // see note below where we set the new template for the page if it is different
+                    elseif(!$this->pages->get("name={$np->name}, parent=$parent_id, include=all, has_parent!=7")->id){ //Check to see if a page with same name, template and parent already exists before creating it
+                        $wp = new Page();
+                        $wp->parent = $this->pages->get($parent_id);
+                        $wp->template = $this->templates->{$np->page_template};
+                        $wp->name = $np->name;
+                        $wp->of(false);
+                        $this->newPage = true;
+                    }
+                    else{
+                        //$wp = $this->pages->get("name={$np->name}, template={$np->page_template}, parent=$parent_id, include=all, has_parent!=7");
+                        //changed in case there is a page that has the same name and parent, but the new version has a different template - hopefully no side effects
+                        // see note below where we set the new template for the page if it is different
+                        $wp = $this->pages->get("name={$np->name}, parent=$parent_id, include=all, has_parent!=7");
+                    }
+
+                    // this is for pages that already existed but now have a new template, so we need to change it.
+                    // was initially added for dealing with http404 page since it can't be deleted. If the new version has a different template we need to change it.
+                    // thanks to @jlahijani for reporting
+                    if($this->session->import_type == 'overwrite' || $this->session->import_type == 'replace'){
+                        if($wp->template->name != $np->page_template) $wp->template = $this->templates->{$np->page_template};
+                    }
+
+                    $wp->of(false);
+                    $wp->save();
+
+                    //set multi-language page names
+                    if(class_exists("LanguageSupportPageNames", false) && $this->languages) {
+                        foreach($this->languages as $language){
+                            if(isset($np->{'name_'.$language->name.'_name'})){
+                                $lalias = $np->{'name_'.$language->name.'_name'};
+                                $lang = $this->languages->get($language->name);
+                                $lalias_name = $this->sanitizer->pageName($lalias);
+                                $wp->set("status$lang",$np->{'name_'.$language->name.'_status'});
+                                $wp->set("name$lang",$lalias_name);
+                                $wp->save();
+                            }
+                        }
+                    }
+
+
+                    if($i==0) $top_parent_page = $wp; //Used for link to show created page tree
+
+                    if($this->newPage || $this->session->import_type == "overwrite" || $this->session->import_type == "replace"){
+                        $wp->status = $np->status;
+                        $wp->sort = $np->sort;
+                        if(isset($np->sortfield)) $wp->sortfield = $np->sortfield;
+
+                        if(isset($np->data)) {
+                            foreach($np->data as $np_field_name => $np_field_value){
+
+                                //if field is not in the list of selected import fields, then skip
+                                if(is_array($this->session->import_fields) && !in_array($np_field_name, $this->session->import_fields)) continue;
+
+                                if(is_object($np_field_value) && array_key_exists('default', $np_field_value)){ // this is for multi language versions of fields - the check for 'default' key should distinguish it from other fields that are objects
+                                    $this->modules->get("LanguageSupport"); // install language support module if it's not already installed. This shouldn't be necessary as it is does above.
+                                    foreach($np_field_value as $language => $field_value){
+                                        $wp->$np_field_name->setLanguageValue($this->languages->get($language), $this->abstractedLinkEncoder($field_value));
+                                    }
+                                }
+                                elseif(is_object($np_field_value)){ // this is for other custom fieldtypes with multiple DB fields
+                                    foreach($np_field_value as $field_name => $field_value){
+                                        // if conditional is required because of float fields like in MapMarker Fieldtype, otherwise error trying to insert blank value
+                                        if($field_value!='') $wp->$np_field_name->$field_name = $field_value;
+                                    }
+                                }
+                                elseif($wp->fields->get($np_field_name) && $wp->fields->get($np_field_name)->type instanceof FieldtypeFile){ // this is for file/image fields
+                                    if(is_array($np_field_value)){
+                                        foreach($np_field_value as $file) {
+
+                                            $tmpImgDir = $this->page->filesManager()->path().'migratorfiles/pages/'.$this->removeParentFromPath($wp->path, $this->session->import_to_parent, 'import');
+                                            $tempImgDir = str_replace('//', '/', $tmpImgDir);
+
+                                            if(strpos($file->data,'//') === false) { //local images
+                                                $filepath = $tmpImgDir.$file->data;
+                                            }
+                                            else{ //images with full paths - probably from 3rd party migrator
+                                                $filepath = $file->data;
+                                            }
+
+                                            if(file_exists($filepath) || strpos($filepath,'//') !== false){
+                                                try {
+                                                    $wp->$np_field_name->add($filepath);
+
+                                                    //This was here for trying to support rename on save using Custom Upload Names when images are embedded into RTE fields.
+                                                    //Will revisit later
+                                                    /*if($wp->fields->get($np_field_name) && $wp->fields->get($np_field_name)->type instanceof FieldtypeImage){
+
+                                                        $dir = new DirectoryIterator($tmpImgDir);
+                                                        foreach($dir as $tmpfile) {
+                                                            if($tmpfile->isDir() || $tmpfile->isDot()) continue;
+                                                            if($this->isImgVarOf(pathinfo($filepath, PATHINFO_BASENAME), pathinfo($tmpImgDir.$tmpfile, PATHINFO_BASENAME))){
+                                                                rename($tmpImgDir.$tmpfile, $wp->filesManager()->path() . $tmpfile);
+                                                            }
+                                                        }
+                                                    }*/
+
+                                                    if(strpos($filepath,'//') === false) unlink($filepath); //remove from migratorfiles temp folder so that it won't get re-copied with the variations a little further down
+
+                                                    $wp->of(false);
+                                                    $wp->save($np_field_name);
+                                                    $wp->$np_field_name->last()->description = $file->description;
+                                                    if($this->fields->$np_field_name->useTags == 1) $wp->$np_field_name->last()->tags = $file->tags;
+                                                    $wp->save($np_field_name);
+
+                                                } catch (Exception $e) {
+                                                    //image must not be available at remote URL
+                                                }
+                                            }
+
+                                            //no longer needed as all additional versions of images are now copied across anyway
+                                            //copy all versions of FieldtypeCropImage images from the Thumbnails module into the final assets/files/id folder
+                                            /*$field = $wp->fields->get($np_field_name);
+                                            if($field->thumbSetting){
+                                                $crops = $field->thumbSetting;
+                                                $crops_a = explode("\n", $crops);
+                                                foreach($crops_a as $crop) {
+                                                    $crop = explode(',', $crop);
+                                                    $name = wire('sanitizer')->name($crop[0]);
+                                                    if(!strlen($name)) continue;
+                                                    $cropFilename = $this->page->filesManager()->path().'migratorfiles/pages/'.$this->removeParentFromPath($wp->path, $this->session->import_to_parent, 'import') . $name . '_' . $file->data;
+                                                    $cropFilename = str_replace('//', '/', $cropFilename);
+                                                    if(is_file($cropFilename)) {
+                                                        copy($cropFilename, $wp->filesManager()->path() . pathinfo($cropFilename, PATHINFO_BASENAME));
+                                                    }
+                                                }
+                                            }*/
+                                        }
+                                    }
+                                }
+                                //All comments code thanks to Okeowo Aderemi
+                                elseif($wp->fields->get($np_field_name) && $wp->fields->get($np_field_name)->type == 'FieldtypeComments'){
+                                    //Save all the comments to the page
+                                    if(is_array($np_field_value)){
+                                        //This iterates over the array of comments
+                                        foreach($np_field_value as $comment){
+                                            $c = new Comment();
+                                            //$c->id=$comment->id;
+                                            $c->status = $comment->status ? $comment->status : 0;
+                                            $c->text = $comment->data;
+                                            $c->cite = $comment->cite;
+                                            $c->email = $comment->email;
+                                            $c->ip = $comment->ip;
+                                            $c->website = $comment->website;
+                                            //TODO: Not sure about this, but might be able to do something like it with the new comments function in PW 2.6
+                                            //$c->parent_id=$comment->parent_id;
+
+                                            $wp->of(false);
+                                            $wp->{$np_field_name}->add($c);
+
+                                            // don't save here because it results in duplicate comments
+                                            // the main page save in the user details / page dates section takes care of the comments
+                                        }
+                                    }
+                                }
+                                elseif($wp->fields->get($np_field_name) && $wp->fields->get($np_field_name)->type == 'FieldtypePage'){ // this is for page fields
+                                    // these were breaking page fields and not needed because all of this is taken care of in the next loop further down
+                                    // need to grab the first (and only item) from the return array if the page field is a single type
+                                    /*if($wp->$np_field_name instanceof Page) {
+                                        $wp->$np_field_name = $this->getPageFieldIDFromName($np_field_value)[0];
+                                    // else add the entire array to multi page field
+                                    } else if($wp->$np_field_name instanceof PageArray) {
+                                        $wp->$np_field_name = $this->getPageFieldIDFromName($np_field_value);
+                                    }*/
+                                }
+                                elseif($wp->fields->get($np_field_name) && $wp->fields->get($np_field_name)->type == 'FieldtypeRepeater'){ // this is for repeater fields
+                                    $n=0;
+                                    foreach($np_field_value as $subfield => $valuearray){
+                                        $newrf = $wp->$np_field_name->getNew(); // getNew() is special PW helper method for creating new repeater items (http://processwire.com/api/fieldtypes/repeaters/)
+                                        $newrf->save();
+                                        $this->repeaterSubFields[] = $newrf;
+                                        $wp->save(); //needed for repeaters with file/image fields
+                                        $wp->of(false);
+                                        foreach($valuearray as $field => $value){
+                                            if($wp->fields->get($field) && $wp->fields->get($field)->type instanceof FieldtypeFile){ // this is for file/image fields
+                                                foreach($value as $file) {
+                                                    $filepath = $this->page->filesManager()->path().'migratorfiles/pages/'.$this->removeParentFromPath($wp->path, $this->session->import_to_parent, 'import').$np_field_name.'_'.$n.'/'.$file->basename;
+                                                    $filepath = str_replace('//', '/', $filepath);
+                                                    if(file_exists($filepath)){
+                                                        $newrf->$field->add($filepath);
+                                                        unlink($filepath); //remove from migratorfiles temp folder so that it won't get re-copied with the variations a little further down
+                                                        $newrf->of(false);
+                                                        $newrf->save($field);
+                                                        $newrf->$field->last()->description = $file->description;
+                                                        if($this->fields->$field->useTags == 1) $newrf->$field->last()->tags = $file->tags;
+                                                        $newrf->save($field);
+                                                    }
+                                                }
+                                            }
+                                            else{
+                                                $arr = (array)$value;
+                                                //check if object empty and set to empty string to prevent "Recoverable Fatal Error: Object of class stdClass could not be converted to string (line 38 of wire/modules/LanguageSupport/FieldtypeTextLanguage.module) " error
+                                                if(is_object($value) && empty($arr)) $value = '';
+                                                if($this->fields->get($field)->type == 'FieldtypeImage') continue; //TODO This is a hack for @tobaco's test import - need to figure out actual problem with images in repeaters
+                                                $newrf->$field = $value;
+                                                $newrf->save();
+                                            }
+                                        }
+                                        $wp->save();
+                                        $n++;
+                                    }
+                                }
+                                elseif($wp->fields->get($np_field_name) && $wp->fields->get($np_field_name)->type == 'FieldtypeTextareas'){ // profields textareas
+                                    $items = explode("\r", $np_field_value);
+                                    foreach($items as $f => $v){
+                                        if(empty($v) || !strpos($v, ':')) continue;
+                                        list($name, $v) = explode(":", $v, 2);
+                                        $wp->{$np_field_name}->$name = $v;
+                                    }
+                                    $wp->save($np_field_name);
+                                }
+                                elseif(is_array($np_field_value)){
+                                    //for Table field types
+                                    if(count($np_field_value)>0 && is_object($np_field_value[0]) && $wp->fields->get($np_field_name)->type == 'FieldtypeTable'){
+                                        $wp->of(false);
+                                        $wp->$np_field_name->removeAll();
+                                        foreach($np_field_value as $entry){
+                                            $tableentry = $wp->$np_field_name->makeBlankItem();
+                                            foreach($entry as $field_name => $field_value){
+                                                if($field_name != 'data') $tableentry->$field_name = $field_value;
+                                            }
+                                            $wp->$np_field_name->add($tableentry);
+                                            $wp->save($np_field_name);
+                                        }
+                                    }
+                                    //for other field types with arrays as values - so far I know Multiplier fits here, but there might be others
+                                    else{
+                                        $wp->$np_field_name = $np_field_value;
+                                    }
+                                }
+                                //Textarea fields
+                                elseif($wp->fields->get($np_field_name) && $wp->fields->get($np_field_name)->type == 'FieldtypeTextarea'){
+                                    $wp->$np_field_name = $this->abstractedLinkEncoder($this->idImagePath($np_field_value, $wp));
+                                }
+                                //should be just text fields left
+                                else{
+                                    $wp->$np_field_name = $np_field_value;
+                                }
+                            }
+                        }
+
+
+                        if($this->session->user_details == 1 || $this->session->page_dates == 1){
+                            //Set user details for page from export if the user_details option is selected. Quiet save is needed to allow this change
+                            if($this->session->user_details == 1){
+                                if(isset($np->created_users_id)) $wp->created_users_id = $this->getUserIDFromName($np->created_users_id);
+                                if(isset($np->modified_users_id)) $wp->modified_users_id = $this->getUserIDFromName($np->modified_users_id);
+                                $wp->save(array('quiet' => true));
+                            }
+
+                            //Set modified/created date for page from export if the page_dates option is selected. Quiet save is needed to allow this change
+                            if($this->session->page_dates == 1){
+                                // >0 is to check negative timestamp that seems to come when site's homepage is exported which creates this error
+                                //SQLSTATE[22007]: Invalid datetime format: 1292 Incorrect datetime value: '5200-06-27 09:27:47' for column 'created' at row 1
+                                if(isset($np->created) && $np->created > 0) $wp->created = $np->created;
+                                if(isset($np->modified) && $np->modified > 0) $wp->modified = $np->modified;
+                                $wp->save(array('quiet' => true));
+                            }
+                        }
+                        else{
+                            $wp->save();
+                        }
+
+                        // move all the remaining (should be just the variations) page files into the destination PW site's assets/files/id folder
+                        //normal file/image fields
+                        $srcDir = $this->session->migratorFilesDir . '/pages/' . $this->removeParentFromPath($wp->path, $this->session->import_to_parent, 'import');
+                        $srcDir = str_replace('//', '/', $srcDir);
+                        $destDir = $wp->filesManager()->path();
+
+                        if (file_exists($srcDir) && is_dir($srcDir) && $handle = opendir($srcDir)) {
+                            while (false !== ($file = readdir($handle))) {
+                                if (is_file($srcDir . $file)) {
+                                    rename($srcDir . $file, $destDir . $file);
+                                }
+                            }
+                            closedir($handle);
+                        }
+
+                        // repeater file/image fields
+                        $n=0;
+                        foreach($this->repeaterSubFields as $rsf){
+                            $srcDir = $this->session->migratorFilesDir . '/pages/' . $this->removeParentFromPath($wp->path, $this->session->import_to_parent, 'import').$np_field_name.'_'.$n.'/';
+                            $srcDir = str_replace('//', '/', $srcDir);
+                            $destDir = $rsf->filesManager()->path();
+
+                            if (file_exists($srcDir) && is_dir($srcDir) && $handle = opendir($srcDir)) {
+                                while (false !== ($file = readdir($handle))) {
+                                    if (is_file($srcDir . $file)) {
+                                        rename($srcDir . $file, $destDir . $file);
+                                    }
+                                }
+                                closedir($handle);
+                            }
+                            $n++;
+                        }
+
+                    }
+
+                    $i++;
+
+                }
+
+            }
+
+        }
+
+        //add parent_id to page fields now that the parent page has been created
+        foreach($pagefield_parent_ids as $pagefield_name => $pagefield_parent_id_name){
+            $pagefield = $this->fields->get($pagefield_name);
+            $pagefield->parent_id = $this->pages->get("name=$pagefield_parent_id_name, include=all, has_parent!=7")->id;
+            $pagefield->save();
+        }
+
+        //add parent_id to pagetable fields now that the parent page has been created
+        foreach($pagetablefield_parent_ids as $pagetablefield_name => $pagetablefield_parent_id_name){
+            $pagetablefield = $this->fields->get($pagetablefield_name);
+            $pagetablefield->parent_id = $pagetablefield_parent_id_name;
+            $pagetablefield->save();
+        }
+
+        //Pages second iteration
+        // run through pages again to populate page field data now that the page fields selectable pages and pagetable item child pages have been created
+        if($this->session->import_components == 'everything'){
+
+            if(isset($data->pages)){
+                foreach($data->pages as $np){
+
+                    /*$import_to_parent = $this->pages->get($this->session->import_to_parent);
+                    $parent = $this->pages->get($import_to_parent->path.$np->parent_name.'/');
+                    if(!$parent->id) $parent = $this->pages->get('/');*/
+
+                    /*$import_to_parent = $this->pages->get($this->session->import_to_parent);
+                    $parent = $this->pages->get($import_to_parent->path.$np->parent_name);*/
+                    $import_to_parent = $this->pages->get($this->session->import_to_parent);
+                    $parent_path = str_replace("//", "/", $import_to_parent->path.$np->parent_name);
+                    $parent = $this->pages->get($parent_path);
+                    $parent_id = $parent->id;
+                    if($np->parent_name=='' && ($np->name=='home' || $np->name=='')){
+                        $parent_id = 0;
+                    }
+                    if($np->name=='') $np->name='home'; //sometimes the home page has no name in the exported json - multi-language thing I think
+
+
+                    $cp = $this->pages->get("name={$np->name}, template={$np->page_template}, parent=$parent_id, include=all, has_parent!=7");
+                    if(!$cp->id) continue;
+                    if(isset($np->data)) {
+                        foreach($np->data as $np_field_name => $np_field_value){
+
+                            //if field is not in the list of selected import fields, then skip
+                            if(is_array($this->session->import_fields) && !in_array($np_field_name, $this->session->import_fields)) continue;
+
+                            if($cp->fields->get($np_field_name) && $cp->fields->get($np_field_name)->type == 'FieldtypePage'){ // this is for page fields
+                                $cp->of(false);
+
+                                $fieldid = $this->getPageFieldIDFromName($np_field_value, $np_field_name);
+                                // need to grab the first [0] (and only item) from the return array if the page field is a single type
+                                if($cp->$np_field_name instanceof Page) {
+                                    if(is_array($np_field_value) && !empty($np_field_value)) $cp->$np_field_name = $fieldid[0];
+                                    // else add the entire array to multi page field
+                                } else if($cp->$np_field_name instanceof PageArray) {
+                                    $cp->$np_field_name = $fieldid;
+                                }
+
+                                $cp->save();
+                            }
+                            elseif($cp->fields->get($np_field_name) && $cp->fields->get($np_field_name)->type == 'FieldtypePageTable'){
+                                foreach($np_field_value as $item){
+                                    $items_parent_id = $cp->fields->get($np_field_name)->parent_id == 0 ? $cp->id : $cp->fields->get($np_field_name)->parent_id;
+                                    $ptp = $this->pages->get("parent={$items_parent_id}, name=$item");
+                                    $cp->{$np_field_name}->add($ptp);
+                                    $cp->save($np_field_name);
+                                }
+                            }
+                        }
+                    }
+                    $cp->of(false);
+                    $cp->save();
+
+                    // RE SET modified values - needs to be down here after the last page save so it doesn't get overwritten
+                    if($this->session->user_details == 1 || $this->session->page_dates == 1){
+                        if($this->session->user_details == 1){
+                            if(isset($np->modified_users_id) && $np->modified_users_id != ''){
+                                //quiet mode doesn't work for modified so manually set this
+                                $sql = "UPDATE `pages` SET `modified_users_id` = '".$this->getUserIDFromName($np->modified_users_id)."' WHERE `id` = '".$cp->id."';";
+                                $update = wire('db')->query($sql);
+                            }
+                        }
+                        if($this->session->page_dates == 1){
+                            if(isset($np->modified) && $np->modified != ''){
+                                //quiet mode doesn't work for modified so manually set this
+                                $sql = "UPDATE `pages` SET `modified` = '".date('Y-m-d H:i:s', $np->modified)."' WHERE `id` = '".$cp->id."';";
+                                $update = wire('db')->query($sql);
+                            }
+                        }
+                    }
+
+                }
+            }
+        }
+
+        //remove the extracted folder of all the migrated files, templates, and json file
+        if($this->session->migratorFilesDir && file_exists($this->session->migratorFilesDir)) $this->recursiveDelete($this->session->migratorFilesDir);
+
+        return $this->processImportForm2Markup($i, $top_parent_page != '' ? $top_parent_page->id : false);
+    }
+
+
+    /**
+     * Process the "Restore Step 2" form and restore the database backup file
+     *
+     */
+    protected function processRestoreForm2(InputfieldForm $form) {
+
+        $backup = new WireDatabaseBackup($this->config->paths->assets.'migratorbackups/' . $this->input->post->restore_directory . '/');
+        $backup->setDatabase($this->database);
+        $backup->setDatabaseConfig($this->config);
+
+        $success = $backup->restore($this->config->paths->assets.'migratorbackups/' . $this->input->post->restore_directory . '/migratorbackup.sql');
+        if($success) $this->message("Database successfully restored.");
+        else $this->error("Sorry, there was a problem and the database could not be restored.");
+
+        $this->recursiveDelete($this->config->paths->templates, false); //clean up templates folder so it will only contain those files from the backup
+        $this->recursiveDelete($this->config->paths->files, false); //clean up files folder so it will only contain those files from the backup
+
+        if(wireCopy($this->config->paths->assets.'migratorbackups/' . $this->input->post->restore_directory . '/templates/', $this->config->paths->templates, true)){
+            $this->message("Templates directory successfully restored.");
+        }
+        else{
+            $this->error("Sorry, there was a problem and the templates directory could not be restored.");
+        }
+
+        if(wireCopy($this->config->paths->assets.'migratorbackups/' . $this->input->post->restore_directory . '/files/', $this->config->paths->files, true)){
+            $this->message("Assets/Files directory successfully restored.");
+        }
+        else{
+            $this->error("Sorry, there was a problem and the Assets/Files directory could not be restored.");
+        }
+
+        unlink($this->config->paths->templates . 'migratorbackup.sql');
+
+    }
+
+
+
+    /**
+     * Push all relevant templates, fields and pages to the pageToArray function and then JSON encode
+     *
+     */
+    protected function pagesToJSON(PageArray $items, $export_components) {
+
+        $a = array();
+        $pages_array = array();
+        $templates_array = array();
+        $fields_array = array();
+        $current_template = array();
+        $i=0;
+        foreach($items as $item) {
+
+            //Pages
+            if($export_components != 'fields_and_templates_only'){
+                if($export_components == 'everything' || ($export_components == 'fields_templates_and_structural_pages' && count($item->siblings("children.count>0"))>0)){
+                    if(!in_array($item->path, $pages_array)){
+                        $a['pages'][] = $this->pageToArray($item, 'pages', null, $i);
+                        $pages_array[] = $item->path;
+                    }
+                }
+            }
+
+            //Templates
+            if(!in_array($item->template->name, $templates_array)){
+                $a['templates'][] = $this->pageToArray($item, 'templates', null, $i);
+                $templates_array[] = $item->template->name;
+                $this->templateFiles[] = $this->templates->get($item->template->name)->filename;
+            }
+
+            //Fields
+            foreach($this->templates->get($item->template->name)->fields as $field){
+                // suppressing notices (@) because I removed "array_key_exists($item->template->name, $current_template) && " because it was preventing creation of the same fields again in subsequent templates although I don't know why - seems like it should work
+                if(!in_array($field->name, $fields_array) || (@!in_array($field->name, $current_template[$item->template->name]))){
+                    // if it's a repeater field then need to look through its subfields and add those to array if not already present
+                    if($field->type=="FieldtypeRepeater"){
+                        foreach($field->repeaterFields as $repeaterField){
+                            $repeater_subfield = $this->fields->get($repeaterField);
+                            if(!in_array($repeater_subfield->name, $fields_array)){
+                                $a['fields'][] = $this->pageToArray($repeater_subfield, 'fields', null, $i);
+                                $fields_array[] = $repeater_subfield->name;
+                            }
+                        }
+                    }
+
+                    // if it's a page field (and the parent_id is defined) then need to add the selectable pages, templates, and fields to array if not already present
+                    // the reason we require the parent_id to be set is that it doesn't make sense to migrate a collection of pages from all over a page tree - would be a mess
+                    // also don't want to export the entire page tree if the page field has Home (ID:1) as the parent of selectable pages
+                    if($field->parent_id!="1" && $field->parent_id!="" && $field->parent_id!=0 && ($field->type=="FieldtypePage" || $field->type=="FieldtypePageTable")){
+
+                        //initial check to see if there are any pagefield selectable pages that actually need including if the changes_since date is set
+                        if($this->session->changes_since != ''){
+                            $parent_page = $this->pages->get("modified>{$this->session->changes_since}, id={$field->parent_id}");
+                            if($parent_page != '') $child_pages = $parent_page->children("modified>{$this->session->changes_since}, include=all, has_parent!=7");
+                            if($parent_page == '' && (!isset($child_pages) || $child_pages == '')) continue;
+                        }
+
+                        if($field->type=="FieldtypePageTable"){
+                            $selectablePages = $this->pages->get($field->parent_id)->children("include=all, has_parent!=7");
+                        }
+                        elseif($field->type=="FieldtypePage"){
+                            $inputfield = $field->getInputfield($this->page);
+                            $selectablePages = $inputfield->getSelectablePages($this->page);
+                        }
+
+                        foreach($selectablePages as $selectablePage){
+
+                            foreach($selectablePage->fields as $selectablePageField){
+
+                                $page_selectable_field = $selectablePageField;
+
+                                if($field->template_id != ""){
+                                    $pagefield_template = $this->templates->get(is_array($field->template_id) ? $field->template_id[0] : $field->template_id); // PageTable fields template setting is an array, hence the [0]
+                                }
+                                else{
+                                    $pagefield_template = $selectablePage->template;
+                                }
+
+                                // pagefield parent page
+                                if($this->session->changes_since != ''){
+                                    $parent_page = $this->pages->get("modified>{$this->session->changes_since}, id={$field->parent_id}, include=all, has_parent!=7");
+                                }
+                                else{
+                                    $parent_page = $this->pages->get("id={$field->parent_id}, include=all, has_parent!=7");
+                                }
+                                if(!in_array($parent_page->name, $pages_array)){ //check to see if this page is not already in the array of pages being exported
+                                    $a['pages'][] = $this->pageToArray($parent_page, 'pages', null, $i); // this needs to be changed to 1 if we want to set the original parent, but this has problems too - not sure of the best solution for this yet.
+                                    $pages_array[] = $parent_page->name;
+                                }
+
+                                // pagefield child pages
+                                if($this->session->changes_since != ''){
+                                    $child_pages = $parent_page->children("modified>{$this->session->changes_since}, include=all, has_parent!=7");
+                                }
+                                else{
+                                    $child_pages = $parent_page->children("include=all, has_parent!=7");
+                                }
+                                foreach($child_pages as $child_page){
+                                    if(!in_array($child_page->name, $pages_array)){
+                                        $a['pages'][] = $this->pageToArray($child_page, 'pages', null, 1); // 1 is forced to ensure parent_name is not set to blank in pageToArray function - could be anything here but 0
+                                        $pages_array[] = $child_page->name;
+                                    }
+                                }
+
+                                // pagefield parent and child templates
+                                if(!in_array($pagefield_template->name, $templates_array)){
+                                    $a['templates'][] = $this->pageToArray($parent_page, 'templates', null, $i);
+                                    $a['templates'][] = $this->pageToArray($child_page, 'templates', null, $i);
+                                    $templates_array[] = $pagefield_template->name;
+                                }
+
+                                // pagefield parent fields
+                                foreach($parent_page->template->fields as $pagefield_parent_field){
+                                    if(!in_array($pagefield_parent_field->name, $fields_array)){
+                                        $a['fields'][] = $this->pageToArray($pagefield_parent_field, 'fields', $parent_page->template->name, $i);
+                                        $fields_array[] = $pagefield_parent_field->name;
+                                    }
+                                }
+
+                                // pagefield child fields
+                                if(!in_array($page_selectable_field->name, $fields_array)){
+                                    $a['fields'][] = $this->pageToArray($page_selectable_field, 'fields', $pagefield_template->name, $i);
+                                    $fields_array[] = $page_selectable_field->name;
+                                }
+                            }
+                        }
+                    }
+
+                    $a['fields'][] = $this->pageToArray($field, 'fields', $item->template->name, $i);
+                    $fields_array[] = $field->name;
+
+
+                }
+                $current_template[$item->template->name][] = $field->name; // this seems a little ugly - uncomment the print_r below to see the array - way more repetition than needed
+            }
+            $i++;
+
+        }
+        //print_r($current_template);exit;
+
+        if($this->session->save_or_copy == 'save'){
+            //Create zip of attached files
+            $allfiles = array();
+            $i=0;
+            foreach($this->pageFiles as $filespath => $pagepath){
+                //foreach($fields as $files){
+                //foreach($files as $file){
+                //error_log('FP:'.$filespath.':'.$pagepath);
+
+                /*foreach (glob($filespath.'*.*') as $file){
+                    $allfiles[$i]['newpath'] = 'pages' . $pagepath . pathinfo($file, PATHINFO_BASENAME);
+                    $allfiles[$i]['currentpath'] = $file;
+                    $i++;
+                }*/
+
+                $dir = new DirectoryIterator($filespath);
+                foreach($dir as $file) {
+                    if($file->isDir() || $file->isDot()) continue;
+                    $allfiles[$i]['newpath'] = 'pages' . $pagepath . $file->getBasename();
+                    $allfiles[$i]['currentpath'] = $file->getPathname();
+                    $i++;
+                }
+
+
+                //}
+            }
+
+            $this->create_zip($allfiles,$this->page->filesManager()->path().'files.zip', 'files');
+
+            //Add required template files to zip
+            $allfiles = array();
+            foreach($this->templateFiles as $file){
+                $allfiles[$file]['newpath'] = 'templates/' . pathinfo($file, PATHINFO_BASENAME);
+                $allfiles[$file]['currentpath'] = $file;
+            }
+
+            if($this->input->helper_files != ''){
+                //Add additional helper files as defined during export
+                foreach($this->input->helper_files as $helperfile){
+                    $pathFromTemplatesDir = str_replace($this->config->paths->templates,'',$helperfile);
+                    $allfiles[$helperfile]['newpath'] = 'templates/' . $pathFromTemplatesDir;
+                    $allfiles[$helperfile]['currentpath'] = $helperfile;
+                }
+            }
+
+            $this->create_zip($allfiles,$this->page->filesManager()->path().'files.zip', 'files');
+        }
+
+        return json_encode($a);
+    }
+
+
+    /**
+     * Prepare arrays to convert to JSON
+     *
+     */
+    protected function pageToArray($wp, $type, $template_name = null, $pageNum = 0) {
+
+        if($type == 'pages'){
+
+            if($wp->name=='') $wp->name = 'home'; //sometimes the home page has no name in the exported json - multi-language only I think
+
+            $data = array('name' => $wp->name);
+
+            if(class_exists("LanguageSupportPageNames", false)) {
+                foreach($this->languages as $language){
+                    $data['name_'.$language->name.'_name'] = $wp->localName($language->name);
+                    $data['name_'.$language->name.'_status'] = $wp->{'status'.$language->id};
+                }
+            }
+
+            $data['parent_name'] = $pageNum == 0 ? '' : $this->removeParentFromPath($wp->path, $this->session->treeParent.'/', 'export');
+            $data['page_template'] = $wp->template->name;
+            $data['status'] = $wp->status;
+            $data['sort'] = $wp->sort;
+            $data['sortfield'] = $wp->sortfield;
+            $data['created_users_id'] = $wp->createdUser->name.":".implode('|',array_map(array($this, 'getRoleNameFromID'), explode('|',$wp->createdUser->roles)));
+            $data['modified_users_id'] = $wp->modifiedUser->name.":".implode('|',array_map(array($this, 'getRoleNameFromID'), explode('|',$wp->modifiedUser->roles)));
+            $data['created'] = $wp->created;
+            $data['modified'] = $wp->modified;
+            $data['data'] = array();
+
+            foreach($wp->template->fieldgroup as $field) {
+
+                $value = $wp->get($field->name);
+                $final_value = $field->type->sleepValue($wp, $field, $value);
+                if(is_array($final_value)){
+                    if($field->type instanceof FieldtypeFile){ //file and image fields
+                        $data['data'][(string) $field] = $final_value;
+                        //add files/images to $pageFiles array for later inclusion in export zip
+                        //if(!empty($final_value)) $this->pageFiles[$wp->path][] = $this->getFullNamedPath($final_value, $field, $wp);
+                        if(!empty($final_value)) $this->pageFiles[$wp->filesManager()->path()] = $wp->path;
+                    }
+                    elseif(strpos($field->type, 'Language') !== false) {
+                        $data['data'][(string) $field] = $this->getLanguageNameFromID($this->abstractedLinkDecoder($final_value));
+                    }
+                    elseif($field->type == "FieldtypePage" || $field->type == "FieldtypePageTable"){
+                        $data['data'][(string) $field] = $this->getPageFieldNameFromID($final_value);
+                    }
+                    //if(array_key_exists('data', $final_value) && array_key_exists('count', $final_value) && array_key_exists('parent_id', $final_value) && $this->modules->isInstalled("LanguageSupport")) { // the data, count and parent_id checks together should limit this to repeater field data
+                    elseif($field->type == "FieldtypeRepeater"){
+                        $data['data'][(string) $field] = $this->getRepeaterContentFromIDs($this->abstractedLinkDecoder($final_value), $field, $wp);
+                    }
+                    /*elseif(array_key_exists('default', $final_value)){ // I think this should be just multilanguage versions of field data - is there a better way to check?
+                        $data['data'][(string) $field] = $this->getLanguageNameFromID($this->abstractedLinkDecoder($final_value));
+                    }*/
+                    elseif(array_key_exists('data', $final_value)){ // I think this should be all the remaining custom field types with multiple DB fields, like MapMarker etc
+                        //override $final_value array with the module names of the subfields, rather than the DB field names
+                        $final_value = array();
+                        foreach($wp->{$field->name} as $subfield => $value){
+                            $final_value[$subfield] = $value;
+                        }
+                        $data['data'][(string) $field] = $final_value;
+                    }
+                    else{ //for other field types with arrays as the value - so far I know Multiplier fits here, but there might be others
+                        $data['data'][(string) $field] = $final_value;
+                    }
+                }
+                else {
+                    $data['data'][(string) $field] = $this->nameImagePathId($this->abstractedLinkDecoder($final_value), $wp->path);
+                }
+
+            }
+
+        }
+
+
+        if($type == 'templates'){
+
+            $data = array(
+                'template' => $wp->template->name,
+            );
+
+            //template context field settings
+            foreach($wp->template->fields as $tpl_field){
+                foreach($wp->template->fieldgroup->getFieldContextArray($tpl_field->id) as $field_setting => $value){
+                    $data['field_settings'][$tpl_field->name][$field_setting] = $value;
+                }
+            }
+
+            foreach($wp->template->getArray() as $field => $value) {
+                //Roles (Access Tab)
+                if(stripos($field,'Roles') !== false  && (is_array($value) && !empty($value) && $value[0] != 0)) {
+                    $names = array_map(array($this, 'getRoleNameFromID'), $value);
+                    $data['data'][$field] = $names;
+                }
+                //Child and Parent template settings (Family Tab)
+                elseif(is_array($value) && !empty($value) && $value[0] != 0) { //Last check to hopefully deal with an error when childTemplates or parentTemplates somehow ended up as [0] => 0
+                    $names = array_map(array($this, 'getTemplateNameFromID'), $value);
+                    $data['data'][$field] = $names;
+                }
+                else{
+                    $data['data'][$field] = $value;
+                }
+            }
+
+        }
+
+
+        if($type == 'fields'){
+
+            $data = array(
+
+                'name' => $wp->name,
+                'label' => $wp->label,
+                'description' => $wp->description,
+                'template' => $template_name,
+                'flags' => $wp->flags,
+                'type' => "{$wp->type}",
+
+            );
+
+            foreach($wp->getArray() as $field => $value) {
+
+                if(is_array($value) && !empty($value) && $value[0] != 0) { //Last check to hopefully deal with an error when childTemplates or parentTemplates somehow ended up as [0] => 0
+                    $names = array_map(array($this, 'getFieldNameFromID'), $value);
+                    $data['data'][$field] = $names;
+                }
+                else{
+                    if(strpos($wp->type, 'Language') !== false && strpos($field, 'label') !== false && $field != 'label') { //last check to make sure it ignores any field that might be named exactly 'label'
+                        $language_id = preg_replace("/[^0-9]/", "", $field);
+                        $data['data']['label_'.$this->languages->get($language_id)->name] = $value;
+                    }
+                    elseif($field == "parent_id"){ // convert page id to name for page field selectable parent
+                        $data['data'][$field] = $this->pages->get("id={$value}, include=all, has_parent!=7")->name;
+                    }
+                    elseif($field == "template_id"){ // convert template id to name for page field selectable template
+                        $data['data'][$field] = $this->templates->get($value)->name;
+                    }
+                    else{
+                        $data['data'][$field] = $value;
+                    }
+                }
+            }
+
+        }
+        return $data;
+    }
+
+
+
+
+    /**
+     * Provide the completion output markup for processImportForm2
+     *
+     */
+    protected function processImportForm2Markup($numImported, $imported_parent_id) {
+        $out = '';
+        if($imported_parent_id){
+            $out .= "<h2>Created all required templates and fields and imported/edited $numImported pages</h2>" .
+                "<p><a href='{$this->config->urls->admin}page/list/?open={$imported_parent_id}'>View the imported page tree</a></p>";
+        }
+        else{
+            $out .= "<h2>Created all required templates and fields</h2>";
+        }
+
+        if(count($this->migratedTemplateFileNames)>0){
+            $out .= "<p><strong>The following template files were migrated. If any of them contain includes that aren't in this list as well, you'll need to manually copy these across to this new PW install</strong></p><p>";
+            foreach($this->migratedTemplateFileNames as $templateFileName) $out .= $templateFileName.'<br />';
+        }
+
+        $out .= "<p><a href='../import/'>Import more content</a></p>";
+
+        return $out;
+    }
+
+
+
+    /**
+     * Add a submit button, moved to a function so we don't have to do this several times
+     *
+     */
+    protected function addSubmit(InputfieldForm $form, $value = 'Submit') {
+        $f = $this->modules->get("InputfieldSubmit");
+        $f->name = 'submit';
+        $f->value = $value;
+        $form->add($f);
+    }
+
+
+    /**
+     * Remove the parent section from the URL path of a page
+     *
+     */
+    protected function removeParentFromPath($path, $parent, $importOrExport){
+        $parent = $this->pages->get("id={$parent}, include=all, has_parent!=7");
+        if($importOrExport == 'import'){
+            $returned_path = str_replace($parent->path, '/', $path) . '/';
+            $returned_path = str_replace('//', '/', $returned_path);
+            $returned_path = str_replace('/home/', '', $returned_path);
+            return $returned_path;
+        }
+        else{
+            //error_log('PN:'.$parent->name);
+            //error_log('PP:'.$parent->path);
+            //error_log('P:'. $path);
+
+            $treeParentName = $parent->name == 'home' ? '/' : $this->pages->get($this->session->treeParent)->name;
+            //error_log('TPN:'.$treeParentName);
+
+            $fullpath = strstr($path, $treeParentName);
+            //error_log('FP:'.$fullpath);
+
+            $parts = explode('/', rtrim($fullpath, "/"));
+            array_pop($parts); //removes the name of the current page from the path
+            return implode('/', $parts) . '/';
+
+            //very old
+            /*$parts = explode('/', substr($path, 1));
+            if(count($parts)>2) array_shift($parts);
+            return str_replace('home','',implode('/', $parts));*/
+            //return preg_replace("/","",$path, 1);
+
+            //last used
+            //return ltrim($path, '/');
+        }
+
+        /*if($importOrExport == 'import' && $this->pages->get($parent)->path == '/'){
+            return $path;
+        }
+        else{
+            $parts = explode('/', substr($path, 1));
+            if(count($parts)>2) array_shift($parts);
+            error_log('RETURN:'.str_replace('home','',implode('/', $parts)));
+            return str_replace('home','',implode('/', $parts));
+        }*/
+    }
+
+
+    /**
+     * Return user ID from their username
+     *
+     */
+    public function getUserIDFromName($userdetails){
+        //check to see if the user already exists in destination PW install. If not, add the new user and return its ID
+
+        $userRoles = str_replace(':','',strstr($userdetails, ':'));
+        $name = str_replace(':','',str_replace($userRoles, '', $userdetails));
+
+        if($name != '' && $this->users->get($name)->id){
+            return $this->users->get($name)->id;
+        }
+        elseif($userRoles != ''){
+            $newuser = new User();
+            $newuser->name= $name;
+            foreach(explode('|',$userRoles) as $userRole) $this->addCreateRole($newuser, $userRole);
+            $newuser->save();
+            return $newuser->id;
+        }
+    }
+
+
+    public function addCreateRole($newuser, $userrole){
+        //check to see if the role already exists in destination PW install. If not, add the new role and add it to the supplied user
+        if(!$this->roles->get($userrole)->id){
+            $newrole = new Role();
+            $newrole->name= $userrole;
+            $newrole->save();
+            $newuser->addRole($newrole);
+        }
+        $newuser->addRole($userrole);
+    }
+
+
+    /**
+     * Return template name from its ID
+     *
+     */
+    public function getTemplateNameFromID($id){
+        if($this->templates->get($id)) return $this->templates->get($id)->name;
+    }
+
+    /**
+     * Return role name from its ID
+     *
+     */
+    public function getRoleNameFromID($id){
+        if($this->roles->get($id)) return $this->roles->get($id)->name;
+    }
+
+    /**
+     * Return role ID from its name
+     *
+     */
+    public function getRoleIDFromName($name){
+        //check to see if the role already exists in destination PW install. If not, add the new role and return its ID
+        if($name != '' && $this->roles->get($name)->id){
+            return $this->roles->get($name)->id;
+        }
+        else{
+            //return $this->roles->get("guest")->id;
+            $newrole = new Role();
+            $newrole->name= $name;
+            $newrole->save();
+            return $newrole->id;
+        }
+    }
+
+    /**
+     * Return field name from its ID
+     *
+     */
+    public function getFieldNameFromID($id){
+        if($this->fields->get($id)) return $this->fields->get($id)->name;
+    }
+
+    /**
+     * Return field ID from its name
+     *
+     */
+    public function getFieldIDFromName($name){
+        if($this->fields->get($name)) return $this->fields->get($name)->id;
+    }
+
+    /**
+     * Return template ID from its name
+     *
+     */
+    public function getTemplateIDFromName($name){
+        if($name != '' && $this->templates->get($name)) return $this->templates->get($name)->id;
+    }
+
+
+    public function isImgVarOf($origImage, $compareImage){
+        $re =   '/^'  .
+            pathinfo($origImage, PATHINFO_FILENAME) . '\.' .      // myfile.
+            '(\d+)x(\d+)' .         // 50x50
+            '([pd]\d+x\d+|[a-z]{1,2})?' .   // nw or p30x40 or d30x40
+            '\.' . pathinfo($origImage, PATHINFO_EXTENSION) .       // .ext
+            '$/';
+
+        if(preg_match($re, $compareImage)) {
+            return true;
+        }
+    }
+
+
+    /**
+     * Return repeater field content from its array of IDs
+     *
+     */
+    public function getRepeaterContentFromIDs( $array, $field, $wp ){
+        $newArray = array();
+        foreach($array as $key=>$value) {
+            if($key == 'data'){
+                $i=0;
+                foreach(explode(',',$value) as $pageid){
+                    $fieldpage = $this->pages->get($pageid);
+                    if(!$fieldpage->template) continue; //checks to see if there are actually any repeater content items stored for the page
+                    foreach($fieldpage->template->fields as $repeaterField){
+                        if($repeaterField->type instanceof FieldtypeFile){
+                            $this->pageFiles[$fieldpage->filesManager()->path()] = $wp->path.$field->name.'_'.$i.'/';
+                            foreach($fieldpage->{$repeaterField->name} as $file){
+                                $newArray[$i][$repeaterField->name][] = $file->getArray();
+                            }
+                        }
+                        else{
+                            $newArray[$i][$repeaterField->name] = $fieldpage->{$repeaterField->name};
+                        }
+                    }
+                    $i++;
+                }
+            }
+        }
+        return $newArray;
+    }
+
+    /**
+     * Return named path for files based on the path of the page and its filename ($value['data'])
+     *
+     */
+    /*public function getFullNamedPath( $array, $field, $wp ){
+        $newArray = array();
+
+        foreach($array as $value) {
+            $newArray[] = $wp->filesManager()->path() . $value['data'];
+
+            //add all versions of FieldtypeCropImage images from the Thumbnails module
+            if($field->thumbSetting){
+                $crops = $field->thumbSetting;
+                $crops_a = explode("\n", $crops);
+                foreach($crops_a as $crop) {
+                    $crop = explode(',', $crop);
+                    $name = wire('sanitizer')->name($crop[0]);
+                    if(!strlen($name)) continue;
+                    $cropFilename = $wp->filesManager()->path() . $name . '_' . $value['data'];
+                    if(is_file($cropFilename)) {
+                        $newArray[] = $cropFilename;
+                    }
+                }
+            }
+        }
+
+        return $newArray;
+    }*/
+
+    /**
+     * Return language name from its ID
+     *
+     */
+    public function getLanguageNameFromID( $array ){
+        $newArray = array();
+
+        foreach($array as $key=>$value) {
+            $language_id = preg_replace("/[^0-9]/", "", $key); //strips out 'data' from the language name leaving just the language id
+            $newArray[$language_id ? $this->languages->get($language_id)->name : 'default'] = $this->abstractedLinkDecoder($value);
+        }
+
+        return $newArray;
+    }
+
+
+    /**
+     * Return page name from its ID - used for page field selected items
+     *
+     */
+    public function getPageFieldNameFromID( $array ){
+        $newArray = array();
+
+        foreach($array as $value) {
+            $newArray[] = $this->pages->get($value)->name;
+        }
+
+        return $newArray;
+    }
+
+    /**
+     * Return page ID from its name - used for page field selected items
+     *
+     */
+    public function getPageFieldIDFromName( $array, $fieldname ){
+
+        //make sure we are getting a page from the pagefields available page parent / template
+        $pagefield = $this->fields->get($fieldname);
+        $pf_parent_id = $pagefield->parent_id ? ", parent={$pagefield->parent_id}" : "";
+        $pf_template_id = $pagefield->template_id ? ", template={$pagefield->template_id}" : "";
+
+        $newArray = array();
+        foreach($array as $value) {
+            $newArray[] = $this->pages->get("name={$value}{$pf_parent_id}{$pf_template_id}, include=all, has_parent!=7")->id;
+        }
+
+        return $newArray;
+    }
+
+
+    /**
+     * Returns field with embedded links converted to format for compatibility with PageLinkAbstractor module (for import process)
+     *
+     */
+    public function abstractedLinkEncoder($value) {
+
+        if(!$this->modules->get("PageLinkAbstractor")) return $value;
+
+        $rootUrl = $this->config->urls->root;
+
+        // check if the value has links by looking for equals sign and quote
+        if(strpos($value, '="') || strpos($value, "='") || strpos($value, "=$rootUrl")) {
+
+            // replace root url with tag, should work with images or tags
+            $value = preg_replace('{(=["\']?)' . preg_quote($rootUrl) . '}', '$1{~root_url}', $value);
+
+            // replace page URLs
+            if(preg_match_all('|\{~root_url\}([-_./a-zA-Z0-9]+)|', $value, $matches)) {
+                $assetsUrl = $this->config->urls->assets;
+                foreach($matches[1] as $key => $url) {
+                    if(strpos($url, $assetsUrl) !== false) continue;
+                    if(strpos($url, "{~root_url}") === false) continue; // exclude external urls
+                    $p = $this->pages->get("/$url");
+                    if($p->id) $value = str_replace($matches[0][$key], '{~page_' . $p->id . '_url}', $value);
+                }
+            }
+
+        }
+
+        return $value;
+
+    }
+
+    /**
+     * Returns RTE field with links to embedded images renamed to replace page ID with the path of the page so it can be converted on import at destination PW install
+     *
+     */
+    public function nameImagePathId($html, $pagepath){
+        if (strpos($html,'<img') === false) return $html; //return early if no images are embedded in html
+        $dom = new DOMDocument();
+        $dom->loadHTML($html);
+        foreach ($dom->getElementsByTagName('img') as $img) {
+            $img->setAttribute( 'src', $pagepath . pathinfo($img->getAttribute('src'), PATHINFO_BASENAME));
+        }
+        return preg_replace('/^<!DOCTYPE.+?>/', '', str_replace( array('<html>', '</html>', '<body>', '</body>'), array('', '', '', ''), $dom->saveHTML()));
+    }
+
+
+    /**
+     * Returns RTE field with links to embedded images renamed to replace the path of the page with the assets/files/xxx so it will work at destination PW install
+     *
+     */
+    public function idImagePath($html, $wp){
+        if (strpos($html,'<img') === false) return $html; //return early if no images are embedded in html
+        $dom = new DOMDocument();
+        @$dom->loadHTML($html);
+        $imagesField = '';
+        foreach($dom->getElementsByTagName('img') as $img){
+            //if path to image is a full http url then grab image and add it to images field.
+            //needed for any 3rd party import (eg Wordpress Migrator) because images are being referenced back to original site, and not included in the import file.
+            if (strpos($img->getAttribute('src'),'//') !== false){
+                //if we haven't found an images field yet
+                if($imagesField == ''){
+                    //check for standard "images" field and use that first
+                    if($wp->images && $this->fields->images->maxFiles == 0){
+                        $imagesField = "images";
+                    }
+                    //else find an available images field in the page template that is set to support multiple images
+                    else{
+                        foreach($wp->template->fields as $field){
+                            if($field->type instanceof FieldtypeImage && $field->maxFiles == 0){
+                                $imagesField = $field->name;
+                                break;
+                            }
+                        }
+                    }
+                    //if no images fields available in template, look in all fields and add to page template
+                    if($imagesField == ''){
+                        foreach($this->fields as $field){
+                            if($field->type instanceof FieldtypeImage && $field->maxFiles == 0){
+                                $wp->template->fields->add($field->name);
+                                $wp->template->fields->save();
+                                $imagesField = $field->name;
+                                break;
+                            }
+                        }
+                    }
+                    //if no images fields available, create a new one and add to page template
+                    if($imagesField == ''){
+                        $if = new Field();
+                        $if->type = $this->modules->get('FieldtypeImage');
+                        $if->name = "images";
+                        $if->label = "Images";
+                        $if->save(); // save the field
+                        //add the new field to the page template
+                        $wp->template->fields->add($if->name);
+                        $wp->template->fields->save();
+                        $imagesField = $if->name;
+                    }
+                }
+                //Grab image from the local path or external URL and add to images field
+                /*try {
+                    $wp->$imagesField->add($img->getAttribute('src'));
+                    if($img->getAttribute('title') != ''){
+                        $wp->$imagesField->last()->description = $img->getAttribute('title');
+                    }
+                    elseif($img->getAttribute('alt') != ''){
+                        $wp->$imagesField->last()->description = $img->getAttribute('alt');
+                    }
+
+                    //resize image to make version to match the size originally in the RTE
+                    //check to make sure size is different to downloaded version before resizing
+                    if($img->getAttribute('width') && $img->getAttribute('width') != $wp->$imagesField->last()->width) {
+                        $imgForRte = $wp->$imagesField->last()->size($img->getAttribute('width'), 0);
+                    }
+                    else {
+                        $imgForRte = $wp->$imagesField->last();
+                    }
+                    $img->setAttribute('src', $imgForRte->url);
+                }
+                catch(Exception $e) {
+                    // in case remote image can't be downloaded
+                }*/
+
+                //resize image to make version to match the size originally in the RTE
+                //check to make sure size is different to downloaded version before resizing
+                /*if($img->getAttribute('width') && count($wp->$imagesField)>0) {
+                    $imgForRte = $wp->$imagesField->last()->size($img->getAttribute('width'), 0);
+                }
+                else {
+                    $imgForRte = $wp->$imagesField->last();
+                }*/
+
+                //determine format for width/height from 3rd party migrated site from settings info ($this->thumb_suffix)
+                $thumbSuffix = str_replace("{width}", $img->getAttribute('width'), $this->thumb_suffix);
+                $thumbSuffix = str_replace("{height}", $img->getAttribute('height'), $thumbSuffix);
+                $fullsizeBasename = str_replace($thumbSuffix, "", pathinfo($img->getAttribute('src'), PATHINFO_BASENAME));
+                $fullsizeImage = $wp->$imagesField->get("name=".$this->sanitizer->pageName($fullsizeBasename, true));
+                $embeddedImage = $wp->$imagesField->get("name=".$this->sanitizer->pageName(pathinfo($img->getAttribute('src'), PATHINFO_BASENAME), true));
+                //create resized version to match the width/height attributes specifed in the RTE img tag
+                if($fullsizeImage && $img->getAttribute('width') && $img->getAttribute('height')) {
+                    $imgForRte = $fullsizeImage->size($img->getAttribute('width'), $img->getAttribute('height'));
+                    //change RTE img src attribute to match new resized image in PW assets/files
+                    $img->setAttribute('src', $imgForRte->url);
+                }
+                // if embedded version has same name as image added to images field
+                elseif($embeddedImage){
+                    $img->setAttribute('src', $embeddedImage->url);
+                }
+            }
+            else{
+                //these are for images from PW imports, rather than 3rd party as above
+                $img->setAttribute('src', $wp->filesManager()->url() . pathinfo($img->getAttribute('src'), PATHINFO_BASENAME));
+            }
+        }
+
+        //replace links to images to new local path - for 3rd party migrated content
+        foreach($dom->getElementsByTagName('a') as $link){
+            //if link path is a full http url
+            if (strpos($link->getAttribute('href'),'//') !== false){
+                $imgExts = array("gif", "jpg", "jpeg", "png", "svg");
+                $url = $link->getAttribute('href');
+                $urlExt = pathinfo($url, PATHINFO_EXTENSION);
+                if (in_array($urlExt, $imgExts)) {
+                    /*try {
+                        $wp->$imagesField->add($link->getAttribute('href'));
+                    }
+                    catch(Exception $e) {
+                        // in case remote image can't be downloaded
+                    }*/
+                    $link->setAttribute('href', $wp->filesManager()->url() . $this->sanitizer->pageName(pathinfo($link->getAttribute('href'), PATHINFO_BASENAME),true));
+                }
+            }
+        }
+
+        return preg_replace('/^<!DOCTYPE.+?>/', '', str_replace( array('<html>', '</html>', '<body>', '</body>'), array('', '', '', ''), $dom->saveHTML()));
+    }
+
+
+    /**
+     * Returns field with absatracted links converted back to normal urls (for export process)
+     *
+     */
+    public function abstractedLinkDecoder($value) {
+
+        if(!$this->modules->get("PageLinkAbstractor")) return $value;
+
+        $changes = 0;
+        $errors = array();
+
+        if(strpos($value, '{~page_') !== false) {
+            if(preg_match_all('/\{~page_(\d+)_url\}/', $value, $matches)) {
+                foreach($matches[1] as $key => $id) {
+                    $p = $this->pages->get((int) $id);
+                    if(!$p->id) {
+                        // notify editor that they have an invalid link
+                        $errors[] = "Links to page ID $id that does not exist";
+                        continue;
+                    }
+                    if($p->isTrash()) {
+                        // notify editor tthat they are linking to a page in the trash
+                        $errors[] = "Links to page ID $id that is in the trash";
+                        continue;
+                    }
+                    $value = str_replace($matches[0][$key], $p->url, $value);
+                    $changes++;
+                }
+            }
+        }
+
+        if(strpos($value, '{~root_url}') !== false) {
+            $value = str_replace('{~root_url}', $this->config->urls->root, $value);
+            $changes++;
+        }
+
+        if(count($errors)) {
+            $wp = $arguments[0];
+            if($wp->editable()) {
+                foreach($errors as $error) $this->error("Page {$wp->path} $error");
+            }
+        }
+        else{
+            return $value;
+        }
+
+    }
+
+
+
+    /**
+     * Create zip archive of attached files for migration
+     *
+     */
+    function create_zip($files = array(), $destination = '', $filetype, $overwrite = false) {
+        //if the zip file already exists and overwrite is false, return false
+        //if(file_exists($destination) && !$overwrite) return false;
+        $valid_files = array();
+        if(is_array($files)) {
+            foreach($files as $file) {
+                //removed the check for now due to @NooseLadder's windows/xampp path issues with file_exists
+                //if(file_exists($file['currentpath']) || file_exists($file[0])) $valid_files[] = $file;
+                $valid_files[] = $file;
+            }
+        }
+        if(count($valid_files)) {
+            //create the archive
+            $zip = new ZipArchive();
+            if($zip->open($destination, $overwrite ? ZIPARCHIVE::OVERWRITE : ZIPARCHIVE::CREATE) !== true) return false;
+            //add the files
+            if($filetype == 'files'){
+                foreach($valid_files as $path => $file) {
+                    $zip->addFile($file['currentpath'],$file['newpath']);
+                }
+            }
+            elseif($filetype == 'json'){
+                foreach($valid_files as $file) {
+                    $zip->addFile($file, pathinfo($file, PATHINFO_BASENAME));
+                }
+            }
+            //echo 'The zip archive contains ',$zip->numFiles,' files with a status of ',$zip->status;
+            $zip->close();
+
+            //check to make sure the file exists
+            return file_exists($destination);
+        }
+        else{
+            return false;
+        }
+    }
+
+
+    /**
+     * Function to recursively delete an entire folder
+     *
+     */
+    public function recursiveDelete($dirPath, $deleteParent = true){
+        foreach(new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dirPath, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST) as $path) {
+            $path->isFile() ? unlink($path->getPathname()) : rmdir($path->getPathname());
+        }
+        if($deleteParent) rmdir($dirPath);
+    }
+
+    public function fancy_implode($arr){
+        array_push($arr, implode(' and ', array_splice($arr, -2)));
+        return implode(', ', $arr);
+    }
+
+
+    public function is_dir_empty($dir) {
+        if (!is_readable($dir)) return NULL;
+        return (count(scandir($dir)) == 2);
+    }
+
+
+    public function downloadConfirm($name, $update = false) {
+
+        if($this->session->download_modules != '1') return false;
+
+        $name = $this->wire('sanitizer')->name($name);
+        $info = self::getModuleInfo();
+        /*$this->wire('processHeadline', $this->labels['download_install']);
+        $this->wire('breadcrumbs')->add(new Breadcrumb('./', $info['title']));
+        if($update) $this->wire('breadcrumbs')->add(new Breadcrumb("./?edit=$name", $name));*/
+
+        $redirectURL = $update ? "./edit?name=$name" : "./";
+        $className = $name;
+        $url = trim($this->wire('config')->moduleServiceURL, '/') . "/$className/?apikey=" . $this->wire('sanitizer')->name($this->wire('config')->moduleServiceKey);
+        //echo $url;
+        $http = new WireHttp();
+        $data = $http->get($url);
+        //print_r($data);exit;
+        if(empty($data)) {
+            $this->error($this->_('Error retrieving data from web service URL') . ' - ' . $http->getError());
+            return $this->session->redirect($redirectURL);
+        }
+        $data = json_decode($data, true);
+        if(empty($data)) {
+            $this->error($this->_('Error decoding JSON from web service'));
+            return $this->session->redirect($redirectURL);
+        }
+        if($data['status'] == 'success') {
+            //$this->error($this->_('Error reported by web service:') . ' ' . wire('sanitizer')->entities($data['error']));
+            //return $this->session->redirect($redirectURL);
+
+            $installed = $this->modules->isInstalled($className) ? $this->modules->getModuleInfoVerbose($className) : null;
+            $installedVersion = $this->modules->formatVersion($installed['version']);
+            if(version_compare($installedVersion, $data['module_version']) < 0) {
+
+                $destinationDir = $this->wire('config')->paths->siteModules . $className . '/';
+                require_once(wire('config')->paths->modules . 'Process/ProcessModule/ProcessModuleInstall.php');
+                $install = new ProcessModuleInstall();
+
+                $completedDir = $install->downloadModule($data['download_url'], $destinationDir);
+                if($completedDir) {
+                    return true;
+                }
+
+            }
+
+        }
+
+        /*$installable = true;
+        foreach($data['categories'] as $category) {
+            if(!in_array($category['name'], $this->uninstallableCategories)) continue;
+            $this->error(sprintf($this->_('Sorry modules of type "%s" are not installable from the admin.'), $category['title']));
+            $installable = false;
+        }
+        if(!$installable) $this->session->redirect($redirectURL);*/
+
+    }
+
+
+    /**
+     * Install the module and create the page where it lives
+     *
+     */
+    public function ___install() {
+
+        if(ProcessWire::versionMajor == 2 && ProcessWire::versionMinor < 4) {
+            throw new WireException("This module requires ProcessWire 2.4 or newer");
+        }
+
+        $wp = $this->getInstalledPage();
+        $this->message("Installed to {$wp->path}");
+        if($wp->parent->name == 'setup') $this->message("Click to your 'Setup' page to start using Migrator");
+    }
+
+    /**
+     * Return the page that this Process is installed on
+     *
+     */
+    protected function getInstalledPage() {
+
+        $admin = $this->pages->get($this->config->adminRootPageID);
+        $parent = $admin->child("name=setup");
+        if(!$parent->id) $parent = $admin;
+        $wp = $parent->child("name=" . self::adminPageName);
+
+        if(!$wp->id) {
+            $wp = new Page();
+            $wp->parent = $parent;
+            $wp->template = $this->templates->get('admin');
+            $wp->name = self::adminPageName;
+            $wp->title = "Migrator";
+            $wp->process = $this;
+            $wp->sort = $parent->numChildren;
+            $wp->save();
+        }
+
+        return $wp;
+    }
+
+    /**
+     * Uninstall the module
+     *
+     */
+    public function ___uninstall() {
+        $wp = $this->getInstalledPage();
+        if($wp->id) {
+            $this->message("Removed {$wp->path}");
+            $this->pages->delete($wp);
+        }
+    }
+
+}

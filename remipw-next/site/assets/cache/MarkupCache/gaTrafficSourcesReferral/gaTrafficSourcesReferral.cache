@@ -1,0 +1,85 @@
+
+<table id='AdminDataTable1' class='AdminDataTable AdminDataList domain AdminDataTableResponsive'>
+	<thead>
+	<tr>
+		<th>domain</th>
+		<th>Visits</th>
+		<th>% Visits</th>
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td>google</td>
+			<td>101</td>
+			<td><div class='percent' style='width: 50px;'></div>72.66 %</td>
+		</tr>
+		<tr>
+			<td>(direct)</td>
+			<td>28</td>
+			<td><div class='percent' style='width: 14px;'></div>20.14 %</td>
+		</tr>
+		<tr>
+			<td>nairaland.com</td>
+			<td>4</td>
+			<td><div class='percent' style='width: 2px;'></div>2.88 %</td>
+		</tr>
+		<tr>
+			<td>ampower.me</td>
+			<td>3</td>
+			<td><div class='percent' style='width: 1px;'></div>2.16 %</td>
+		</tr>
+		<tr>
+			<td>reddit.com</td>
+			<td>2</td>
+			<td><div class='percent' style='width: 1px;'></div>1.44 %</td>
+		</tr>
+		<tr>
+			<td>gavnosis.com</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.72 %</td>
+		</tr>
+	</tbody>
+</table>
+<script>if(typeof AdminDataTable != 'undefined') AdminDataTable.initTable($('#AdminDataTable1'));</script>
+<table id='AdminDataTable2' class='AdminDataTable AdminDataList url AdminDataTableResponsive'>
+	<thead>
+	<tr>
+		<th>url</th>
+		<th>Visits</th>
+		<th>% Visits</th>
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td>http://www.google(not set) (<a href='http://www.google(not set)' target='_blank'>open</a>)</td>
+			<td>101</td>
+			<td><div class='percent' style='width: 50px;'></div>72.66 %</td>
+		</tr>
+		<tr>
+			<td>http://www.(direct)(not set) (<a href='http://www.(direct)(not set)' target='_blank'>open</a>)</td>
+			<td>28</td>
+			<td><div class='percent' style='width: 14px;'></div>20.14 %</td>
+		</tr>
+		<tr>
+			<td>http://www.nairaland.com/3639470/koken-cms-photographers (<a href='http://www.nairaland.com/3639470/koken-cms-photographers' target='_blank'>open</a>)</td>
+			<td>4</td>
+			<td><div class='percent' style='width: 2px;'></div>2.88 %</td>
+		</tr>
+		<tr>
+			<td>http://www.ampower.me/ (<a href='http://www.ampower.me/' target='_blank'>open</a>)</td>
+			<td>3</td>
+			<td><div class='percent' style='width: 1px;'></div>2.16 %</td>
+		</tr>
+		<tr>
+			<td>http://www.reddit.com/r/Processwire/ (<a href='http://www.reddit.com/r/Processwire/' target='_blank'>open</a>)</td>
+			<td>2</td>
+			<td><div class='percent' style='width: 1px;'></div>1.44 %</td>
+		</tr>
+		<tr>
+			<td>http://www.gavnosis.com/archive/processwire (<a href='http://www.gavnosis.com/archive/processwire' target='_blank'>open</a>)</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.72 %</td>
+		</tr>
+	</tbody>
+</table>
+<script>if(typeof AdminDataTable != 'undefined') AdminDataTable.initTable($('#AdminDataTable2'));</script>

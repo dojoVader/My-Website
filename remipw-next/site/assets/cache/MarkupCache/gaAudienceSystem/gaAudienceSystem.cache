@@ -1,0 +1,262 @@
+
+<table id='AdminDataTable1' class='AdminDataTable AdminDataList browser AdminDataTableResponsive'>
+	<thead>
+	<tr>
+		<th>browser</th>
+		<th>Visits</th>
+		<th>% Visits</th>
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td>Chrome</td>
+			<td>111</td>
+			<td><div class='percent' style='width: 47px;'></div>68.10 %</td>
+		</tr>
+		<tr>
+			<td>Firefox</td>
+			<td>30</td>
+			<td><div class='percent' style='width: 12px;'></div>18.40 %</td>
+		</tr>
+		<tr>
+			<td>Opera</td>
+			<td>5</td>
+			<td><div class='percent' style='width: 2px;'></div>3.07 %</td>
+		</tr>
+		<tr>
+			<td>Safari</td>
+			<td>5</td>
+			<td><div class='percent' style='width: 2px;'></div>3.07 %</td>
+		</tr>
+		<tr>
+			<td>Opera Mini</td>
+			<td>4</td>
+			<td><div class='percent' style='width: 1px;'></div>2.45 %</td>
+		</tr>
+		<tr>
+			<td>Internet Explorer</td>
+			<td>3</td>
+			<td><div class='percent' style='width: 1px;'></div>1.84 %</td>
+		</tr>
+		<tr>
+			<td>Android Webview</td>
+			<td>2</td>
+			<td><div class='percent' style='width: 0px;'></div>1.23 %</td>
+		</tr>
+		<tr>
+			<td>BlackBerry</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.61 %</td>
+		</tr>
+		<tr>
+			<td>Safari (in-app)</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.61 %</td>
+		</tr>
+		<tr>
+			<td>UC Browser</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.61 %</td>
+		</tr>
+		<tr>
+			<td><a class='ga_display_more_rows' href='#'>show more</a></td>
+			<td class='blank'>&nbsp;</td>
+			<td class='blank'>&nbsp;</td>
+		</tr>
+	</tbody>
+</table>
+<script>if(typeof AdminDataTable != 'undefined') AdminDataTable.initTable($('#AdminDataTable1'));</script>
+<table id='AdminDataTable2' class='AdminDataTable AdminDataList os AdminDataTableResponsive'>
+	<thead>
+	<tr>
+		<th>os</th>
+		<th>Visits</th>
+		<th>% Visits</th>
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td>Windows</td>
+			<td>82</td>
+			<td><div class='percent' style='width: 35px;'></div>50.31 %</td>
+		</tr>
+		<tr>
+			<td>Macintosh</td>
+			<td>38</td>
+			<td><div class='percent' style='width: 16px;'></div>23.31 %</td>
+		</tr>
+		<tr>
+			<td>Linux</td>
+			<td>27</td>
+			<td><div class='percent' style='width: 11px;'></div>16.56 %</td>
+		</tr>
+		<tr>
+			<td>Android</td>
+			<td>11</td>
+			<td><div class='percent' style='width: 4px;'></div>6.75 %</td>
+		</tr>
+		<tr>
+			<td>iOS</td>
+			<td>4</td>
+			<td><div class='percent' style='width: 1px;'></div>2.45 %</td>
+		</tr>
+		<tr>
+			<td>BlackBerry</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.61 %</td>
+		</tr>
+	</tbody>
+</table>
+<script>if(typeof AdminDataTable != 'undefined') AdminDataTable.initTable($('#AdminDataTable2'));</script>
+<table id='AdminDataTable3' class='AdminDataTable AdminDataList resolution AdminDataTableResponsive'>
+	<thead>
+	<tr>
+		<th>resolution</th>
+		<th>Visits</th>
+		<th>% Visits</th>
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td>1920x1080</td>
+			<td>38</td>
+			<td><div class='percent' style='width: 16px;'></div>23.31 %</td>
+		</tr>
+		<tr>
+			<td>1366x768</td>
+			<td>25</td>
+			<td><div class='percent' style='width: 10px;'></div>15.34 %</td>
+		</tr>
+		<tr>
+			<td>1440x900</td>
+			<td>13</td>
+			<td><div class='percent' style='width: 5px;'></div>7.98 %</td>
+		</tr>
+		<tr>
+			<td>1280x1024</td>
+			<td>12</td>
+			<td><div class='percent' style='width: 5px;'></div>7.36 %</td>
+		</tr>
+		<tr>
+			<td>1600x900</td>
+			<td>11</td>
+			<td><div class='percent' style='width: 4px;'></div>6.75 %</td>
+		</tr>
+		<tr>
+			<td>1280x800</td>
+			<td>10</td>
+			<td><div class='percent' style='width: 4px;'></div>6.13 %</td>
+		</tr>
+		<tr>
+			<td>1680x1050</td>
+			<td>10</td>
+			<td><div class='percent' style='width: 4px;'></div>6.13 %</td>
+		</tr>
+		<tr>
+			<td>2560x1440</td>
+			<td>10</td>
+			<td><div class='percent' style='width: 4px;'></div>6.13 %</td>
+		</tr>
+		<tr>
+			<td>1920x1200</td>
+			<td>6</td>
+			<td><div class='percent' style='width: 2px;'></div>3.68 %</td>
+		</tr>
+		<tr>
+			<td>360x640</td>
+			<td>5</td>
+			<td><div class='percent' style='width: 2px;'></div>3.07 %</td>
+		</tr>
+		<tr>
+			<td><a class='ga_display_more_rows' href='#'>show more</a></td>
+			<td class='blank'>&nbsp;</td>
+			<td class='blank'>&nbsp;</td>
+		</tr>
+		<tr>
+			<td>1536x864</td>
+			<td>3</td>
+			<td><div class='percent' style='width: 1px;'></div>1.84 %</td>
+		</tr>
+		<tr>
+			<td>1280x720</td>
+			<td>2</td>
+			<td><div class='percent' style='width: 0px;'></div>1.23 %</td>
+		</tr>
+		<tr>
+			<td>320x568</td>
+			<td>2</td>
+			<td><div class='percent' style='width: 0px;'></div>1.23 %</td>
+		</tr>
+		<tr>
+			<td>3440x1440</td>
+			<td>2</td>
+			<td><div class='percent' style='width: 0px;'></div>1.23 %</td>
+		</tr>
+		<tr>
+			<td>400x568</td>
+			<td>2</td>
+			<td><div class='percent' style='width: 0px;'></div>1.23 %</td>
+		</tr>
+		<tr>
+			<td>1252x704</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.61 %</td>
+		</tr>
+		<tr>
+			<td>1360x768</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.61 %</td>
+		</tr>
+		<tr>
+			<td>1600x1200</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.61 %</td>
+		</tr>
+		<tr>
+			<td>2560x1600</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.61 %</td>
+		</tr>
+		<tr>
+			<td>300x425</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.61 %</td>
+		</tr>
+		<tr>
+			<td>375x667</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.61 %</td>
+		</tr>
+		<tr>
+			<td>3840x2160</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.61 %</td>
+		</tr>
+		<tr>
+			<td>414x736</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.61 %</td>
+		</tr>
+		<tr>
+			<td>480x360</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.61 %</td>
+		</tr>
+		<tr>
+			<td>480x682</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.61 %</td>
+		</tr>
+		<tr>
+			<td>601x962</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.61 %</td>
+		</tr>
+		<tr>
+			<td>720x1280</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.61 %</td>
+		</tr>
+	</tbody>
+</table>
+<script>if(typeof AdminDataTable != 'undefined') AdminDataTable.initTable($('#AdminDataTable3'));</script>

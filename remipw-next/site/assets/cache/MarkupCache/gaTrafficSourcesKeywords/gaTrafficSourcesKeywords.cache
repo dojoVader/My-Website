@@ -1,0 +1,28 @@
+
+<table id='AdminDataTable1' class='AdminDataTable AdminDataList keyword AdminDataTableResponsive'>
+	<thead>
+	<tr>
+		<th>keyword</th>
+		<th>Visits</th>
+		<th>% Visits</th>
+	</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td>(not provided)</td>
+			<td>100</td>
+			<td><div class='percent' style='width: 50px;'></div>71.94 %</td>
+		</tr>
+		<tr>
+			<td>(not set)</td>
+			<td>38</td>
+			<td><div class='percent' style='width: 19px;'></div>27.34 %</td>
+		</tr>
+		<tr>
+			<td>how to create a website using zend framework and xxamp</td>
+			<td>1</td>
+			<td><div class='percent' style='width: 0px;'></div>0.72 %</td>
+		</tr>
+	</tbody>
+</table>
+<script>if(typeof AdminDataTable != 'undefined') AdminDataTable.initTable($('#AdminDataTable1'));</script>
