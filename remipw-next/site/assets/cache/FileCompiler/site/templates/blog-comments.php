@@ -15,7 +15,7 @@
     
     if($input->urlSegment1) { 
                 // rss feed
-                if($input->urlSegment1 != 'rss') throw new \ProcessWire\Wire404Exception();
+                if($input->urlSegment1 != 'rss') throw new Wire404Exception();
                 $blog->renderCommentsRSS($limit);
 
                 return;//this is important: stops output of any other markup except the RSS xml
@@ -28,5 +28,5 @@
         }        
 
     //include the main/common markup
-     require_once(\ProcessWire\wire('files')->compile(\ProcessWire\wire("config")->paths->root . "site/templates/blog-main.inc",array('includes'=>true,'namespace'=>true,'modules'=>true,'skipIfNamespace'=>true)));
+    require_once("blog-main.inc");
 

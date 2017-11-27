@@ -1,0 +1,208 @@
+<?php
+ require_once(\ProcessWire\wire('files')->compile(dirname(dirname(\ProcessWire\wire("config")->paths->root . 'site/modules/TemplateEngineTwig/TemplateEngineTwig.module')) . '/TemplateEngineFactory/TemplateEngine.php',array('includes'=>true,'namespace'=>true,'modules'=>false,'skipIfNamespace'=>false)));
+if (!class_exists('Twig_Autoloader')) {
+    require_once(/*NoCompile*/\ProcessWire\wire("config")->paths->root . 'site/modules/TemplateEngineTwig' . '/vendor/twig/twig/lib/Twig/Autoloader.php');
+}
+
+/**
+ * TemplateEngineTwig
+ *
+ * @author Stefan Wanzenried <stefan.wanzenried@gmail.com>
+ * @license http://www.gnu.org/licenses/gpl-2.0.txt GNU General Public License, version 2
+ * @version 1.0.4
+ */
+class TemplateEngineTwig extends TemplateEngine implements \ProcessWire\Module, \ProcessWire\ConfigurableModule
+{
+
+    const COMPILE_DIR = 'TemplateEngineTwig_compile/';
+
+    /**
+     * @var Twig_Environment
+     */
+    protected $twig;
+
+
+    /**
+     * Stores variables and values set with TemplateEngineTwig::set(). Passed to Twig when rendering the template.
+     *
+     * @var array
+     */
+    protected $variables = array();
+
+
+    /**
+     * @param string $filename
+     */
+    public function __construct($filename = '')
+    {
+        parent::__construct($filename);
+    }
+
+
+    /**
+     * Setup Twig
+     */
+    public function initEngine()
+    {
+        Twig_Autoloader::register();
+        $loader = new Twig_Loader_Filesystem($this->getTemplatesPath());
+        $this->twig = new Twig_Environment($loader, array(
+            'cache' => $this->wire('config')->paths->assets . 'cache/' . self::COMPILE_DIR,
+            'debug' => $this->wire('config')->debug,
+            'auto_reload' => $this->getConfig('auto_reload'),
+            'autoescape' => $this->getConfig('auto_escape'),
+        ));
+
+        if ($this->wire('config')->debug) {
+            $this->twig->addExtension(new Twig_Extension_Debug());
+        }
+
+        if ($this->getConfig('api_vars_available')) {
+            foreach (\ProcessWire\Wire::getFuel() as $name => $object) {
+                if ($name == $this->factory->get('api_var')) continue;
+                $this->variables[$name] = $object;
+            }
+        }
+        $this->initTwig($this->twig);
+    }
+
+
+    /**
+     * @return array
+     */
+    public static function getDefaultConfig()
+    {
+        $config = parent::getDefaultConfig();
+
+        return array_merge($config, array(
+            'template_files_suffix' => 'html',
+            'api_vars_available' => 1,
+            'auto_reload' => 1,
+            'auto_escape' => 0,
+        ));
+    }
+
+
+    /**
+     * Set a key/value pair to the template
+     *
+     * @param $key
+     * @param $value
+     */
+    public function set($key, $value)
+    {
+        $this->variables[$key] = $value;
+    }
+
+
+    /**
+     * Render markup from template file
+     *
+     * @throws WireException
+     * @return mixed
+     */
+    public function render()
+    {
+        try {
+            $template = $this->twig->loadTemplate($this->getFilename());
+            return $template->render($this->variables);
+        } catch (Exception $e) {
+            throw new \ProcessWire\WireException($e->getMessage());
+        }
+    }
+
+
+    /**
+     * Clear all variables passed
+     */
+    public function clearVariables()
+    {
+        $this->variables = array();
+    }
+
+
+    /**
+     * Clear cache when uninstalling
+     */
+    public function uninstall()
+    {
+        parent::uninstall();
+        \ProcessWire\wirermdir($this->wire('config')->paths->assets . 'cache/' . self::COMPILE_DIR, true);
+    }
+
+
+    /**
+     * Hookable method called after twig instance is created.
+     * Allows for customizing Twig, e.g. add extensions
+     *
+     * @param Twig_Environment $twig
+     */
+    protected function ___initTwig(Twig_Environment $twig)
+    {
+    }
+
+
+
+    /**
+     * Methods per interfaces Module, ConfigurableModule
+     *
+     */
+
+
+    /**
+     * @return array
+     */
+    public static function getModuleInfo()
+    {
+        return array(
+            'title' => 'Template Engine Twig',
+            'summary' => 'Twig templates for the TemplateEngineFactory',
+            'version' => 104,
+            'author' => 'Stefan Wanzenried (Wanze)',
+            'href' => 'https://processwire.com/talk/topic/6835-module-twig-for-the-templateenginefactory/',
+            'singular' => false,
+            'autoload' => false,
+            'requires' => array('TemplateEngineFactory'),
+        );
+    }
+
+
+    /**
+     * Return an InputfieldWrapper of Inputfields used to configure the class
+     *
+     * @param array $data Array of config values indexed by field name
+     * @return InputfieldWrapper
+     *
+     */
+    public static function getModuleConfigInputfields(array $data)
+    {
+        /** @var Modules $modules */
+        $data = array_merge(self::getDefaultConfig(), $data);
+        $wrapper = parent::getModuleConfigInputfields($data);
+        $modules = \ProcessWire\wire('modules');
+
+        /** @var InputfieldCheckbox $f */
+        $f = $modules->get('InputfieldCheckbox');
+        $f->label = \ProcessWire\__('Import ProcessWire API variables in Twig templates');
+        $f->description = \ProcessWire\__('All API variables (page, input, config etc.) are accessible in Twig, e.g. {{ page }} for $page');
+        $f->name = 'api_vars_available';
+        if ($data['api_vars_available']) $f->checked = 1;
+        $wrapper->append($f);
+
+        $f = $modules->get('InputfieldCheckbox');
+        $f->label = \ProcessWire\__("Auto reload templates (recompile)");
+        $f->description = \ProcessWire\__('If enabled, templates are recompiled whenever the source code changes');
+        $f->name = 'auto_reload';
+        if ($data['auto_reload']) $f->checked = 1;
+        $wrapper->append($f);
+
+        $f = $modules->get('InputfieldCheckbox');
+        $f->label = \ProcessWire\__("Auto escape variables");
+        $f->description = \ProcessWire\__("If enabled, templates will auto-escape variables. If you use ProcessWire's textformatter to escape variables, do not enable this feature.");
+        $f->name = 'auto_escape';
+        if ($data['auto_escape']) $f->checked = 1;
+        $wrapper->append($f);
+
+        return $wrapper;
+    }
+}

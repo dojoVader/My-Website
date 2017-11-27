@@ -1036,7 +1036,7 @@ class ProcessGoogleAnalytics extends \ProcessWire\Process implements \ProcessWir
 	 */
 	private function loadGoogleApi() {
 
-		 include_once(\ProcessWire\wire('files')->compile($this->config->paths->ProcessGoogleAnalytics . 'GoogleAnalyticsAPI.class.php',array('includes'=>true,'namespace'=>true,'modules'=>false,'skipIfNamespace'=>false)));
+ include_once(\ProcessWire\wire('files')->compile($this->config->paths->ProcessGoogleAnalytics . 'GoogleAnalyticsAPI.class.php',array('includes'=>true,'namespace'=>true,'modules'=>false,'skipIfNamespace'=>false)));
 		$this->ga = new GoogleAnalyticsAPI();
 		$this->ga->auth->setClientId($this->clientId);
 		$this->ga->auth->setClientSecret($this->clientSecret);

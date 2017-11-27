@@ -10,7 +10,7 @@
  *
  */
 
-class ModulesManagerNotification extends \ProcessWire\WireData implements \ProcessWire\Module, \ProcessWire\ConfigurableModule {
+class ModulesManagerNotification extends WireData implements Module, ConfigurableModule {
 
     protected static $intervals = array(
         "every5Minutes",
@@ -33,7 +33,7 @@ class ModulesManagerNotification extends \ProcessWire\WireData implements \Proce
         return array(
             'title' => 'Modules Manager Notification',
             'version' => 11,
-            'summary' => \ProcessWire\__('Send email notification to specified email address with installed modules updates available.'),
+            'summary' => __('Send email notification to specified email address with installed modules updates available.'),
             'href' => '',
             'author' => "Philipp 'Soma' Urlich",
             'singular' => true,
@@ -51,7 +51,7 @@ class ModulesManagerNotification extends \ProcessWire\WireData implements \Proce
 
     public function runLazyCronJob() {
 
-        $log = new \ProcessWire\FileLog(\ProcessWire\wire('config')->paths->logs . 'modulesmanager_notification_log.txt');
+        $log = new FileLog(wire('config')->paths->logs . 'modulesmanager_notification_log.txt');
         $log->prune(100000);
         $log->save( " executed modules version update check" );
 
@@ -74,7 +74,7 @@ class ModulesManagerNotification extends \ProcessWire\WireData implements \Proce
         $modulesArray = array();
         foreach($this->modules as $module) {
             $modulesArray[$module->className()] = 1;
-            \ProcessWire\wire('modules')->getModuleInfo($module->className()); // fixes problems
+            wire('modules')->getModuleInfo($module->className()); // fixes problems
         }
 
         $module_email_text = '';
@@ -87,7 +87,7 @@ class ModulesManagerNotification extends \ProcessWire\WireData implements \Proce
 
                 // get module infos, we can't use modules->get(module_name) here
                 // as it would install the module, which we don't want at all
-                $info = \ProcessWire\wire('modules')->getModuleInfo($item->class_name);
+                $info = wire('modules')->getModuleInfo($item->class_name);
                 $local_version = $this->formatVersion($info['version']);
 
                 if($remote_version > $local_version) {
@@ -117,7 +117,7 @@ class ModulesManagerNotification extends \ProcessWire\WireData implements \Proce
             $headline .= PHP_EOL . PHP_EOL;
             $body = $headline . $body;
 
-            // $file = fopen(\ProcessWire\wire('config')->paths->logs . 'modulesmanager_email_log.txt', "wb");
+            // $file = fopen(wire('config')->paths->logs . 'modulesmanager_email_log.txt', "wb");
             // fwrite( $file, $this->recipient_email . "\n" . $subject . "\n" . $body);
             // fclose($file);
 
@@ -145,42 +145,42 @@ class ModulesManagerNotification extends \ProcessWire\WireData implements \Proce
     static public function getModuleConfigInputfields(array $data) {
         $data = array_merge(self::$defaults, $data);
 
-        $fields = new \ProcessWire\InputfieldWrapper();
-        $modules = \ProcessWire\wire('modules');
+        $fields = new InputfieldWrapper();
+        $modules = wire('modules');
 
         $field = $modules->get('InputfieldCheckbox');
         $field->attr('name', 'active');
         $field->attr('value', 1);
         $field->attr('checked', $data['active'] == 1 ? "checked" : '');
-        $field->label = \ProcessWire\__('Activate Module');
+        $field->label = __('Activate Module');
         $fields->append($field);
 
         $field = $modules->get('InputfieldEmail');
         $field->attr('name', 'recipient_email');
         $field->attr('value', $data['recipient_email']);
-        $field->label = \ProcessWire\__('E-Mail Recipient');
+        $field->label = __('E-Mail Recipient');
         $fields->append($field);
 
         $field = $modules->get('InputfieldEmail');
         $field->attr('name', 'from_email');
         $field->attr('value', $data['from_email']);
-        $field->label = \ProcessWire\__('E-Mail From Address');
-        $field->description = \ProcessWire\__('Will set "From" header with this email if specified.');
+        $field->label = __('E-Mail From Address');
+        $field->description = __('Will set "From" header with this email if specified.');
         $fields->append($field);
 
         $field = $modules->get('InputfieldText');
         $field->attr('name', 'email_subject');
         $field->attr('value', $data['email_subject']);
-        $field->label = \ProcessWire\__('E-Mail Subject');
+        $field->label = __('E-Mail Subject');
         $fields->append($field);
 
         $field = $modules->get('InputfieldSelect');
         $field->attr('name', 'update_interval');
         foreach(self::$intervals as $interval) $field->addOption($interval, $interval);
         $field->attr('value', $data['update_interval']);
-        $field->label = \ProcessWire\__('Interval');
-        $field->description = \ProcessWire\__('The lazy cron interval to check for module updates and send out email notification. I added the "every5Minutes" just for testing purposes.');
-        $field->notes = \ProcessWire\__('Note that this requires someone to hit your website to get executed, so interval times can vary.');
+        $field->label = __('Interval');
+        $field->description = __('The lazy cron interval to check for module updates and send out email notification. I added the "every5Minutes" just for testing purposes.');
+        $field->notes = __('Note that this requires someone to hit your website to get executed, so interval times can vary.');
         $fields->append($field);
 
 

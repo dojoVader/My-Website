@@ -25,3 +25,4 @@
 2017-03-09 14:30:35	Update #16: Completed!
 2017-04-26 11:38:21	Detected core version change 3.0.54 => 3.0.61
 2017-10-09 10:15:55	Detected core version change 3.0.61 => 3.0.78
+2017-11-25 07:29:21	Detected core version change 3.0.78 => 3.0.65

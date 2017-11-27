@@ -143,7 +143,7 @@ class Smarty_Template_Compiled extends Smarty_Template_Resource_Base
             $_template->smarty->compile_check = $compileCheck;
         } else {
             $_template->mustCompile = true;
-            @ include(\ProcessWire\wire('files')->compile($_template->compiled->filepath,array('includes'=>true,'namespace'=>true,'modules'=>false,'skipIfNamespace'=>false)));
+            @include($_template->compiled->filepath);
             if ($_template->mustCompile) {
                 $this->compileTemplateSource($_template);
                 $compileCheck = $_template->smarty->compile_check;
@@ -172,7 +172,7 @@ class Smarty_Template_Compiled extends Smarty_Template_Resource_Base
         if (defined('HHVM_VERSION')) {
             $_template->smarty->ext->_hhvm->includeHhvm($_template, $_template->compiled->filepath);
         } else {
- include(\ProcessWire\wire('files')->compile($_template->compiled->filepath,array('includes'=>true,'namespace'=>true,'modules'=>false,'skipIfNamespace'=>false)));
+            include($_template->compiled->filepath);
         }
     }
 

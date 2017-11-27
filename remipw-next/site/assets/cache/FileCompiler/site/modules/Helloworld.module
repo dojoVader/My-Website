@@ -15,7 +15,7 @@
  *
  */
 
-class Helloworld extends \ProcessWire\WireData implements \ProcessWire\Module {
+class Helloworld extends WireData implements Module {
 
 	/**
 	 * getModuleInfo is a module required by all modules to tell ProcessWire about them

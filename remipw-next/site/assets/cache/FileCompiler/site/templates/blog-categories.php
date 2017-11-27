@@ -20,5 +20,5 @@
     $content .= $blog->renderCategories($page->children, $limit);//children => the individual category pages
 
     //include the main/common markup
-     require_once(\ProcessWire\wire('files')->compile(\ProcessWire\wire("config")->paths->root . "site/templates/blog-main.inc",array('includes'=>true,'namespace'=>true,'modules'=>true,'skipIfNamespace'=>true)));
+    require_once("blog-main.inc");
 

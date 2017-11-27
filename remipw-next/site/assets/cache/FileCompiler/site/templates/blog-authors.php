@@ -61,7 +61,7 @@
                 
                 $author = $users->get($authorID);
                 
-                if(!$author->id || (!$author->hasRole($authorRole) && !$author->isSuperuser())) throw new \ProcessWire\Wire404Exception();
+                if(!$author->id || (!$author->hasRole($authorRole) && !$author->isSuperuser())) throw new Wire404Exception();
 
                 $posts = $pages->find("template=blog-post, created_users_id=$author, sort=-blog_date, limit=10");
                
@@ -102,5 +102,5 @@
     }
 
     //include the main/common markup
-     require_once(\ProcessWire\wire('files')->compile(\ProcessWire\wire("config")->paths->root . "site/templates/blog-main.inc",array('includes'=>true,'namespace'=>true,'modules'=>true,'skipIfNamespace'=>true)));
+    require_once("blog-main.inc");
 

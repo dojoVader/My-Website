@@ -1,0 +1,406 @@
+@import url("https://fonts.googleapis.com/css?family=EB+Garamond:400,400i,500,500i,600,600i,700,700i,800,800i");
+html,
+body {
+  font-family: 'EB Garamond', serif;
+}
+
+h1 {
+  font-size: 2.9125em;
+  line-height: 55px;
+}
+
+.article-category h2 {
+  margin-top: -16px;
+  color: #e2975a;
+  font-style: italic;
+}
+
+.article-category ul {
+  padding-left: 0px;
+}
+
+.article-category ul li {
+  list-style: none;
+  margin-left: 0px;
+  font-size: 1.6em;
+  font-weight: 400;
+  font-style: italic;
+}
+
+.article-category ul li a {
+  color: #e2975a;
+}
+
+.article-archives {
+  margin-bottom: 4%;
+}
+
+.article-archives h2 {
+  font-size: 3em;
+}
+
+.archives .article_listing {
+  margin-bottom: 5%;
+}
+
+.archives .article_listing .article_date {
+  font-family: 'EB Garamond', serif;
+  font-size: 1.4em;
+  line-height: 15px;
+  font-weight: 500;
+  margin: 0 0 10px;
+  text-transform: uppercase;
+}
+
+.archives .article_listing .article_title {
+  margin-top: 0px;
+}
+
+.archives .article_listing .article_title a {
+  color: #d29c23;
+  text-decoration: none;
+}
+
+.archives .article_listing {
+  margin-bottom: 7%;
+}
+
+h2 {
+  font-size: 1.875em;
+  line-height: 40px;
+  font-weight: 100;
+  font-style: normal;
+}
+
+#minimal {
+  padding: 0px;
+}
+
+#minimal header#pageIntro {
+  background: #283e4c url(../images/header-background2.jpg);
+  background-size: cover;
+  padding: 60px 0 147px;
+  position: relative;
+  width: 100%;
+}
+
+#minimal header#pageIntro:after {
+  bottom: 0px;
+  content: '';
+  height: 115px;
+  position: absolute;
+  transform-origin: left bottom;
+  transform: skewY(4deg);
+  width: 100%;
+  z-index: 1;
+  background: white;
+}
+
+#minimal header#pageIntro .bio_panel {
+  margin-left: 5%;
+  margin-top: 5%;
+}
+
+#minimal header#pageIntro .bio_panel .bio_section {
+  color: white;
+}
+
+#minimal header#pageIntro .bio_panel .bio_section h2 {
+  color: #cedbe4;
+}
+
+#minimal header.blog-pages {
+  padding: 50px 7% 30px;
+}
+
+#minimal header.blog-pages a {
+  font-family: 'EB Garamond', serif;
+  color: #e9ac00;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 0;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+#minimal header.blog-pages .blog_header {
+  padding: 0 16%;
+}
+
+#minimal header.blog-pages .prev-nav a {
+  float: left;
+}
+
+#minimal header.blog-pages .next-nav a {
+  float: right;
+}
+
+#minimal header.blog-pages .home-nav {
+  text-align: center;
+}
+
+#minimal header.article-pages {
+  padding: 50px 7% 30px;
+  border-top: 2px solid #eec03d;
+}
+
+#minimal header.article-pages a {
+  font-family: 'EB Garamond', serif;
+  color: #e9ac00;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 0;
+  text-transform: uppercase;
+}
+
+#minimal #page-body div.container {
+  color: #627682;
+}
+
+#minimal #page-body div.container #intro {
+  margin-top: 1%;
+}
+
+#minimal #page-body div.container #intro h1 {
+  font-family: 'EB Garamond', serif;
+  font-size: 1.4em;
+  font-weight: 400;
+  text-transform: uppercase;
+  -webkit-font-smoothing: subpixel-antialiased;
+}
+
+#minimal #page-body div.container .block_articles {
+  margin-top: 14%;
+}
+
+#minimal #page-body div.container .block_articles .article_listing {
+  margin-bottom: 5%;
+}
+
+#minimal #page-body div.container .block_articles .article_listing .article_date {
+  font-family: 'EB Garamond', serif;
+  font-size: 1.4em;
+  line-height: 15px;
+  font-weight: 500;
+  margin: 0 0 10px;
+  text-transform: uppercase;
+}
+
+#minimal #page-body div.container .block_articles .article_listing .article_title {
+  margin-top: 0px;
+}
+
+#minimal #page-body div.container .block_articles .article_listing .article_title a {
+  color: #d29c23;
+  text-decoration: none;
+}
+
+#minimal div.blog-container section.blog {
+  text-align: center;
+  margin-top: 10%;
+}
+
+#minimal div.blog-container section.blog .blog-header {
+  padding: 1% 17%;
+}
+
+#minimal div.blog-container section.blog .blog-header h1 {
+  font-weight: 700;
+}
+
+#minimal div.blog-container section.blog .blog-header h5 {
+  text-transform: uppercase;
+  font-size: 1.2em;
+  font-weight: 600;
+}
+
+#minimal div.blog-container section.blog .blog_content {
+  color: #665f5f;
+  text-rendering: optimizeLegibility;
+  font-size: 1.7em;
+  line-height: 44px;
+  width: auto;
+  margin: 0 auto;
+  text-align: -webkit-left;
+  padding: 0% 17%;
+  padding-bottom: 10%;
+}
+
+#minimal div.blog-container section.blog .blog_content h2 {
+  font-size: 1.284em;
+  font-style: italic;
+  margin: 30px 0;
+}
+
+#minimal div.blog-container section.blog .blog_content em {
+  font-weight: 700;
+  color: #7d7a7a;
+}
+
+#minimal div.blog-container section.blog .blog_content .citation-note {
+  color: #7d86ff;
+  font-weight: bold;
+  font-size: 0.7em;
+  letter-spacing: 2px;
+  position: relative;
+  top: -3px;
+}
+
+#minimal div.blog-container section.blog .blog_content blockquote {
+  padding: 10px 20px;
+  margin: 0 0 20px;
+  font-size: 0.9em;
+  border-left: 5px solid #eee;
+  font-style: italic;
+}
+
+#minimal div.blog-container section.blog .blog_content hr.small {
+  width: 40%;
+  border: 1px solid #d0d01d;
+  margin-bottom: 5%;
+  margin-top: 4%;
+}
+
+#minimal div.blog-container section.blog .blog_content img {
+  max-width: 100%;
+  margin: 0% auto;
+  border: 5px solid #fffdfd;
+  border-radius: 3px;
+  box-shadow: 0px 2px 3px #d4d0d0;
+  display: block;
+}
+
+#minimal div.blog-container section.blog .citations p {
+  font-size: 0.78em;
+  margin-bottom: 2%;
+  line-height: 1.5;
+}
+
+#minimal div.blog-container section.blog .citations p .external-body em {
+  text-decoration: dashed;
+}
+
+footer .header-container {
+  margin-top: 1%;
+  position: relative;
+  bottom: 0px;
+  width: 100%;
+  background: #283e4c;
+  height: 100px;
+  z-index: 10;
+  -webkit-transition: 0.5s;
+  -moz-transition: 0.5s;
+  transition: 0.5s;
+  padding: 2.5% 2%;
+}
+
+footer .header-container nav.site-nav a {
+  color: white;
+  font-size: 1.5em;
+}
+
+/* Large desktops and laptops */
+/* Landscape tablets and medium desktops */
+/* Portrait tablets and small desktops */
+/* Landscape phones and portrait tablets */
+/* Portrait phones and smaller */
+@media (max-width: 480px) {
+  .nav-link div a {
+    font-size: 1.1em !important;
+  }
+  .blog .blog-header {
+    padding: 0px !important;
+  }
+  .blog .blog_content {
+    padding: 3% !important;
+  }
+}
+
+/*Components and additional styling*/
+.MarkupPagerNav li {
+  color: #dbaf4f;
+  float: left;
+  list-style: none;
+}
+
+.MarkupPagerNav li a {
+  margin-right: 20px;
+  font-size: 1.477833em;
+  font-style: italic;
+  color: #dbaf4f;
+  font-weight: 600;
+}
+
+.MarkupPagerNav li.MarkupPagerNavOn a {
+  color: #94783a !important;
+}
+
+#CommentForm p.CommentFormCite,
+#CommentForm p.CommentFormEmail {
+  width: 50%;
+}
+
+#CommentForm p.CommentFormCite label,
+#CommentForm p.CommentFormEmail label {
+  width: 100%;
+}
+
+#CommentForm p.CommentFormCite label input,
+#CommentForm p.CommentFormEmail label input {
+  width: 100%;
+  text-indent: 2%;
+  font-weight: lighter;
+  font-style: italic;
+}
+
+#CommentForm .CommentFormText textarea {
+  height: 100px;
+}
+
+#CommentForm .CommentFormWebsite,
+#CommentForm .CommentFormText {
+  width: 100%;
+}
+
+#CommentForm .CommentFormWebsite label,
+#CommentForm .CommentFormText label {
+  width: 100%;
+}
+
+#CommentForm .CommentFormSubmit button {
+  padding: 3px;
+  font-size: 19px;
+  margin: 0;
+  width: 19%;
+  border: none;
+  background: #d0d01d;
+  color: black;
+  box-shadow: 0px 2px 4px #ada2a2;
+}
+
+.CommentListItem img {
+  float: left;
+  height: auto;
+  border: 3px solid #dadad2 !important;
+  width: 12%;
+  border-radius: 0px !important;
+  top: 67px;
+}
+
+.CommentText {
+  float: right;
+  width: 85%;
+  font-style: italic;
+}
+
+.CommentFooter::before {
+  clear: both;
+}
+
+p.CommentAction a {
+  margin-left: 15%;
+}
+
+.CommentHeader {
+  margin-left: 0px !important;
+}

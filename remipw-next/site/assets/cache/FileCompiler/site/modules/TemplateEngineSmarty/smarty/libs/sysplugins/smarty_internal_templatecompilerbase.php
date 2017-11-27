@@ -971,7 +971,7 @@ abstract class Smarty_Internal_TemplateCompilerBase
                         $this->parent_compiler->template->compiled->required_plugins[ 'compiled' ][ $tag ][ $plugin_type ][ 'function' ] =
                             $callback;
                     }
- require_once(\ProcessWire\wire('files')->compile($script,array('includes'=>true,'namespace'=>true,'modules'=>false,'skipIfNamespace'=>false)));
+                    require_once $script;
                 } else {
                     $this->trigger_template_error("Default plugin handler: Returned script file \"{$script}\" for \"{$tag}\" not found");
                 }

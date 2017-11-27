@@ -35,7 +35,7 @@ function smarty_modifier_date_format($string, $format = null, $default_date = ''
     /**
      * require_once the {@link shared.make_timestamp.php} plugin
      */
- require_once(\ProcessWire\wire('files')->compile(SMARTY_PLUGINS_DIR . 'shared.make_timestamp.php',array('includes'=>true,'namespace'=>true,'modules'=>false,'skipIfNamespace'=>false)));
+    require_once(SMARTY_PLUGINS_DIR . 'shared.make_timestamp.php');
     if ($string != '' && $string != '0000-00-00' && $string != '0000-00-00 00:00:00') {
         $timestamp = smarty_make_timestamp($string);
     } elseif ($default_date != '') {

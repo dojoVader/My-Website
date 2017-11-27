@@ -420,7 +420,7 @@ class ProcessMigrator extends \ProcessWire\Process implements \ProcessWire\Modul
         $f->addOption('append', 'Append');
         $f->addOption('overwrite', 'Overwrite');
         $f->addOption('replace', 'Replace');
-        $f->description = "APPEND will not change settings of existing fields, nor the content of existing pages. It will append new fields to templates and new \ProcessWire\Pages(and date) to the selected Parent Page.\nOVERWRITE will change field settings and edit the content of existing pages so they match the imported data.\nREPLACE will match the destination to the source exactly, by modifying page data, changing field type and field settings, and deleting unused fields from templates.";
+        $f->description = "APPEND will not change settings of existing fields, nor the content of existing pages. It will append new fields to templates and new pages (and date) to the selected Parent Page.\nOVERWRITE will change field settings and edit the content of existing pages so they match the imported data.\nREPLACE will match the destination to the source exactly, by modifying page data, changing field type and field settings, and deleting unused fields from templates.";
         if($this->session->import_type) $f->attr('value', $this->session->import_type);
         $form->add($f);
 
@@ -2769,7 +2769,7 @@ class ProcessMigrator extends \ProcessWire\Process implements \ProcessWire\Modul
             if(version_compare($installedVersion, $data['module_version']) < 0) {
 
                 $destinationDir = $this->wire('config')->paths->siteModules . $className . '/';
-                 require_once(\ProcessWire\wire('files')->compile(\ProcessWire\wire('config')->paths->modules . 'Process/ProcessModule/ProcessModuleInstall.php',array('includes'=>true,'namespace'=>true,'modules'=>false,'skipIfNamespace'=>false)));
+ require_once(\ProcessWire\wire('files')->compile(\ProcessWire\wire('config')->paths->modules . 'Process/ProcessModule/ProcessModuleInstall.php',array('includes'=>true,'namespace'=>true,'modules'=>false,'skipIfNamespace'=>false)));
                 $install = new ProcessModuleInstall();
 
                 $completedDir = $install->downloadModule($data['download_url'], $destinationDir);

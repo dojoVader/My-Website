@@ -65,9 +65,9 @@ $config->prependTemplateFile = '_init.php';
  * 
  */
 $config->dbHost = 'localhost';
-$config->dbName = 'next';
+$config->dbName = 'okeowo';
 $config->dbUser = 'root';
-$config->dbPass = '';
+$config->dbPass = 'root';
 $config->dbPort = '3306';
 
 /**

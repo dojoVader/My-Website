@@ -10,7 +10,7 @@
 
 /**
  * Smarty Internal Plugin Resource File
- * Implements the file system as resource for Smarty \ProcessWire\Templates
+ * Implements the file system as resource for Smarty templates
  *
  * @package    Smarty
  * @subpackage TemplateResources

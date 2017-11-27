@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        {{ include("layout/elements/header.twig") }}
+    </head>
+    <body>
+        <div class="container-fluid" id="minimal">
+            <header class="blog-pages">
+                <div class="col-md-12 col-xs-12 col-sm-12 nav-link">
+                   {% block nav %}{% endblock %}
+                </div>
+            </header>
+            {% block content %}{% endblock %}
+        </div>
+        <footer>
+            <div class="header-container headroom headroom--not-top headroom--pinned" id="header-container">
+           
+   {{include("layout/elements/footer.twig")}}    
+            </div>
+        </footer>
+    </body>
+</html>

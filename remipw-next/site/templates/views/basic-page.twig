@@ -1,0 +1,41 @@
+{% extends 'layout/blog.twig' %}
+{% block content %}
+<div class="container blog-container">
+    <section class="blog">
+        <header class="blog-header">
+            <h1>
+                {{page.title}}
+            </h1>
+            <h5 class="blog_date">
+                {{page.published|date("F d, Y")}} 
+            </h5>
+            <br>
+            </br>
+        </header>
+        <div class="blog_content">
+            <hr class="small" />
+             {{page.body}}
+             <hr class="small" />
+
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block nav %}
+ <div class="col-md-4 col-xs-4 col-sm-4 prev-nav">
+                        <a href="{{page.prev.url}}">
+                            ← Prev
+                        </a>
+                    </div>
+                    <div class="col-md-4 col-xs-4 col-sm-4 home-nav">
+                        <a href="{{homepage.url}}">
+                            Home
+                        </a>
+                    </div>
+                    <div class="col-md-4 col-xs-4 col-sm-4 next-nav">
+                        <a href="{{page.next.url}}">
+                            Next →
+                        </a>
+                    </div>
+{% endblock %}
